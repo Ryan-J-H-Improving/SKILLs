@@ -1,0 +1,37 @@
+course:
+  course_instance_id: ""
+  course_code: ""
+  course_title: ""
+  institution: ""
+  department: ""
+  term: ""
+  year: ""
+  lecturers: []
+  source_version: ""
+  materials_hash: ""
+  related_course_instances: []
+
+contracts:
+  reply_language:
+    value: ""
+    source: ""
+    locked: true
+    change_rule: "explicit_user_request_only"
+  note_language:
+    value: ""
+    source: "defaults_to_reply_language"
+    locked: true
+    change_rule: "explicit_user_request_only"
+
+source_priority:
+  - "current_term_slides"
+  - "current_term_transcripts"
+  - "current_term_exams"
+  - "related_term_materials"
+  - "general_knowledge_marked_as_extra"
+
+status:
+  current_mode: "learning"
+  last_updated: ""
+  unresolved_identification_questions: []
+
