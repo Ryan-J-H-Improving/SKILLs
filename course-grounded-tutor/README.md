@@ -89,6 +89,7 @@ The skill uses a project-local workspace by default:
         exam-review-notes.md
         figure-notes.md
       exam-review/
+        exam-topic-map.md
 ```
 
 Keeping the workspace local makes it easier for multiple chats in the same project to share course state without relying on a global database.
@@ -172,6 +173,8 @@ Course figures and AI-generated teaching aids are handled separately.
 ```text
 course-grounded-tutor/
   SKILL.md
+  README.md
+  requirements.txt
   agents/
     openai.yaml
   references/
@@ -229,11 +232,7 @@ python scripts/extract_pdf_figures.py \
   --pages 12
 ```
 
-`extract_pdf_figures.py` requires PyMuPDF:
-
-```bash
-pip install pymupdf
-```
+`extract_pdf_figures.py` requires PyMuPDF, which is listed in `requirements.txt`.
 
 ## Design Principles
 
