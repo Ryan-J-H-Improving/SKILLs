@@ -1,0 +1,5 @@
+interface:
+  display_name: "Course Grounded Tutor"
+  short_description: "Stable tutor from slides, transcripts, and exams."
+  default_prompt: "Use $course-grounded-tutor to teach from uploaded course slides, transcripts, and exam papers while maintaining stable language, notation, notes, and practice."
+
