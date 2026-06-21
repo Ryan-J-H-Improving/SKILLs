@@ -244,4 +244,4 @@ python scripts/extract_pdf_figures.py \
 
 ## License
 
-Add a license before publishing this repository publicly.
+This skill is licensed under the MIT License in the repository root.
