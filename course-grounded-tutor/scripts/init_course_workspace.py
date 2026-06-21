@@ -16,6 +16,8 @@ ROOT_TEMPLATE_FILES = {
     "learning-state.md.template": ("memory", "learning-state.md"),
     "session-log.md.template": ("memory", "session-log.md"),
     "weak-points.md.template": ("memory", "weak-points.md"),
+    "practice-history.md.template": ("memory", "practice-history.md"),
+    "exam-topic-map.md.template": ("exam-review", "exam-topic-map.md"),
 }
 
 
@@ -69,4 +71,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
