@@ -1,4 +1,5 @@
 # SKILLs
+A Codex Skill for students who want AI tutoring that stays grounded in their actual course materials instead of drifting into generic explanations.
 
 Personal Codex skills distilled from real study, work, and life experience.
 
