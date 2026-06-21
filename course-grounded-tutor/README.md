@@ -101,6 +101,12 @@ Copy or install this folder as a Codex Skill, then invoke it when working with c
 Use $course-grounded-tutor to teach from these lecture slides and transcript.
 ```
 
+Install the optional PDF image dependency if you want to extract slide figures:
+
+```bash
+pip install -r requirements.txt
+```
+
 Example prompts:
 
 ```text
@@ -223,7 +229,11 @@ python scripts/extract_pdf_figures.py \
   --pages 12
 ```
 
-`extract_pdf_figures.py` requires PyMuPDF.
+`extract_pdf_figures.py` requires PyMuPDF:
+
+```bash
+pip install pymupdf
+```
 
 ## Design Principles
 
@@ -244,4 +254,4 @@ python scripts/extract_pdf_figures.py \
 
 ## License
 
-This skill is licensed under the MIT License in the repository root.
+MIT License.

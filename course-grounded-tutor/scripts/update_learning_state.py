@@ -30,7 +30,7 @@ def main() -> int:
     today = date.today().isoformat()
 
     session_entry = f"""
-## {today}
+### {today}
 
 - Mode: {args.mode}
 - Topic: {args.topic}
@@ -43,7 +43,7 @@ def main() -> int:
 
     if args.weak_point:
         weak_entry = f"""
-## {args.weak_point}
+### {args.weak_point}
 
 - Status: fragile
 - Evidence: {args.user_performance}
@@ -59,4 +59,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
