@@ -35,3 +35,30 @@ skill-name/
   assets/         # Optional templates or reusable files
   references/     # Detailed protocols and supporting rules
   scripts/        # Optional helper scripts
+```
+
+## Usage
+
+Clone or download this repository, then copy the skill folder you want to use into your Codex skills directory.
+
+For example, to install `course-grounded-tutor`:
+
+```text
+~/.codex/skills/course-grounded-tutor
+```
+
+On Windows, this is usually:
+
+```text
+%USERPROFILE%\.codex\skills\course-grounded-tutor
+```
+
+Then start a new Codex chat and invoke it with:
+
+```text
+Use $course-grounded-tutor to teach from these lecture slides and transcript.
+```
+
+## License
+
+This repository is licensed under the [MIT License](./LICENSE).
