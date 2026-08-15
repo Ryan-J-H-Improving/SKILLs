@@ -1,0 +1,62 @@
+# Learning State: <Course>
+
+## Course Contract
+
+- Reply language:
+- Note language:
+- Teaching profile:
+- Current mode:
+- Notation source:
+
+<!-- course-grounded-tutor:current-state:start -->
+## Current Session Snapshot
+
+- Current lecture or lesson:
+- Lesson progress:
+- Current topic:
+- Current learning cluster:
+- Narrative bridge:
+- Instruction stage:
+- Practice gate:
+- Practice checkpoint:
+- Independent practice allowed:
+- Required prerequisites:
+- New terms:
+- Source layers:
+- Worked example status:
+- Guided check evidence:
+- Existing evidence reused:
+- Answer actions this session:
+- Immediate remediation rounds:
+- Learner load signal:
+- Blocking gaps:
+- Completed concepts:
+- Fragile concepts:
+- Mastered concepts:
+- Exam-ready concepts:
+- Next recommended step:
+<!-- course-grounded-tutor:current-state:end -->
+
+## Covered Concepts
+
+| Concept | Lecture position | Source | Status | Notes |
+| --- | --- | --- | --- | --- |
+
+## Student Weak Points
+
+| Weak point | Status | Evidence | Follow-up |
+| --- | --- | --- | --- |
+
+## Corrections That Worked
+
+| Concept | Correction approach | Result |
+| --- | --- | --- |
+
+## Cross-Concept Links
+
+| Concept | Related concepts | Why it matters |
+| --- | --- | --- |
+
+## Next Recommended Steps
+
+- <Next step>

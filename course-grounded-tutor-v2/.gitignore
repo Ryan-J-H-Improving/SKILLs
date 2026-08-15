@@ -1,0 +1,8 @@
+# Private course workspace and generated learning records
+.ai-course-tutor/
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
