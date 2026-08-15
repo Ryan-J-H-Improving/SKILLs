@@ -1,0 +1,4 @@
+interface:
+  display_name: "Course Grounded Tutor V2"
+  short_description: "Course tutor with stable formats, adaptive pacing, and visual teaching."
+  default_prompt: "Use $course-grounded-tutor-v2 to teach from registered course materials with locked languages and notation, restored topic transitions, adaptive learning checkpoints, proactive validated figures, visible progress, personalized notes, and readiness-gated practice."
