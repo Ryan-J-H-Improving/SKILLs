@@ -1,0 +1,29 @@
+# Private course workspaces and generated learning records
+.ai-course-tutor/
+
+# Local course materials
+*.pdf
+*.ppt
+*.pptx
+*.doc
+*.docx
+*.csv
+*.xlsx
+transcript*.txt
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
