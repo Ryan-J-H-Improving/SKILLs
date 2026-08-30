@@ -1,0 +1,49 @@
+course:
+  course_instance_id: ""
+  course_code: ""
+  course_title: ""
+  institution: ""
+  department: ""
+  term: ""
+  year: ""
+  lecturers: []
+  source_version: ""
+  materials_hash: ""
+  related_course_instances: []
+
+contracts:
+  reply_language:
+    value: ""
+    source: ""
+    locked: true
+    change_rule: "explicit_user_request_only"
+  note_language:
+    value: ""
+    source: "defaults_to_reply_language"
+    locked: true
+    change_rule: "explicit_user_request_only"
+
+teaching:
+  teaching_profile: ""
+  profile_source: ""
+  locked: true
+  delivery_defaults:
+    learning_batch: "one dense unit or one to two moderate units"
+    practice_checkpoint: "3-5 independent answer actions per coherent learning cluster; count subparts"
+    reuse_existing_evidence: true
+    learning_scoring: "diagnostic_without_numeric_score_by_default"
+    proactive_visuals: true
+    immediate_remediation_rounds_per_error: 1
+    stop_on_fatigue_or_pause: true
+
+source_priority:
+  - "current_term_slides"
+  - "current_term_transcripts"
+  - "current_term_exams"
+  - "related_term_materials"
+  - "general_knowledge_marked_as_extra"
+
+status:
+  current_mode: "learning"
+  last_updated: ""
+  unresolved_identification_questions: []
