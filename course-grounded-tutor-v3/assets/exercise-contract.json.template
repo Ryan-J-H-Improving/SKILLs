@@ -1,0 +1,99 @@
+{
+  "contract_version": 1,
+  "status": "draft",
+  "exercise_kind": "learning_post_point",
+  "course_id": "<course-id>",
+  "lesson_id": "<lesson-id>",
+  "point_id": "<stable semantic blueprint Point ID, e.g. week-03-sampling-distribution>",
+  "exercise_set_id": "<stable-exercise-id>",
+  "source_fingerprint": "<source-fingerprint>",
+  "validated_at": "",
+  "blueprint_sha256": "",
+  "display": {
+    "title": "Knowledge-point exercise",
+    "answer_instruction": "Answer actions 1-3 in order."
+  },
+  "scenario": "<facts and context only; do not hide an answer request here>",
+  "actions": [
+    {
+      "id": "A1",
+      "relation_id": "R1",
+      "operation": "classify",
+      "stimulus": "<optional local facts, data, or code>",
+      "prompt": "<one explicit answer request>",
+      "tested_relationship": "<one relationship>",
+      "expected_response_shape": "<one answer slot>",
+      "source_layer": "course_core",
+      "teaching_evidence": {
+        "status": "demonstrated",
+        "explanation_locator": "<durable note or teaching-turn locator>",
+        "explanation_summary": "<what was explicitly explained>",
+        "worked_example_locator": "<durable worked-example locator>",
+        "worked_example_summary": "<same reasoning operation demonstrated in another context>"
+      },
+      "rubric": {
+        "criterion": "<one criterion stated by the prompt>",
+        "explicit_in_prompt": true,
+        "requires_untaught_inference": false
+      }
+    },
+    {
+      "id": "A2",
+      "relation_id": "R2",
+      "operation": "explain",
+      "stimulus": "",
+      "prompt": "<one explicit answer request>",
+      "tested_relationship": "<one relationship>",
+      "expected_response_shape": "<one answer slot>",
+      "source_layer": "course_core",
+      "teaching_evidence": {
+        "status": "demonstrated",
+        "explanation_locator": "<durable note or teaching-turn locator>",
+        "explanation_summary": "<what was explicitly explained>",
+        "worked_example_locator": "<durable worked-example locator>",
+        "worked_example_summary": "<same reasoning operation demonstrated in another context>"
+      },
+      "rubric": {
+        "criterion": "<one criterion stated by the prompt>",
+        "explicit_in_prompt": true,
+        "requires_untaught_inference": false
+      }
+    },
+    {
+      "id": "A3",
+      "relation_id": "R3",
+      "operation": "apply",
+      "stimulus": "",
+      "prompt": "<one explicit answer request>",
+      "tested_relationship": "<one relationship>",
+      "expected_response_shape": "<one answer slot>",
+      "source_layer": "course_core",
+      "teaching_evidence": {
+        "status": "demonstrated",
+        "explanation_locator": "<durable note or teaching-turn locator>",
+        "explanation_summary": "<what was explicitly explained>",
+        "worked_example_locator": "<durable worked-example locator>",
+        "worked_example_summary": "<same reasoning operation demonstrated in another context>"
+      },
+      "rubric": {
+        "criterion": "<one criterion stated by the prompt>",
+        "explicit_in_prompt": true,
+        "requires_untaught_inference": false
+      }
+    }
+  ],
+  "audits": {
+    "teaching_evidence": {
+      "result": "pending",
+      "evidence": "<fresh audit of explanation and demonstration locators>"
+    },
+    "atomicity_and_load": {
+      "result": "pending",
+      "evidence": "<fresh audit that each action contains one answer request>"
+    },
+    "question_rubric_symmetry": {
+      "result": "pending",
+      "evidence": "<fresh audit that every marking criterion is explicit and taught>"
+    }
+  }
+}

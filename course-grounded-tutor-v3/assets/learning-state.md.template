@@ -1,0 +1,66 @@
+# Learning State: <Course>
+
+## Course Contract
+
+- Reply language:
+- Note language:
+- Teaching profile:
+- Current mode:
+- Notation source:
+
+<!-- course-grounded-tutor:current-state:start -->
+## Current Session Snapshot
+
+- Workspace schema version: 1
+- Current lesson:
+- Lesson progress:
+- Point ID:
+- Current point:
+- Point status:
+- Blueprint path: indexes/teaching-blueprint.md
+- Blueprint status:
+- Blueprint SHA256:
+- Source fingerprint:
+- Transcript gate:
+- Transcript evidence:
+- Narrative bridge:
+- Formula gate:
+- Unresolved formula operations:
+- Coverage gate:
+- Exercise status:
+- Exercise coverage:
+- Exercise contract:
+- Exercise contract SHA256:
+- Mastery evidence:
+- Automatic advance:
+- Tutor coverage failures this lesson: 0
+- Remaining-lesson audit: not_required
+- Learner load signal:
+- Blocking gaps:
+- Last stable point:
+- Next action:
+<!-- course-grounded-tutor:current-state:end -->
+
+## Covered Concepts
+
+| Concept | Lesson position | Source | Status | Evidence |
+| --- | --- | --- | --- | --- |
+
+## Student Weak Points
+
+| Weak point | Status | Evidence after valid coverage | Follow-up |
+| --- | --- | --- | --- |
+
+## Corrections That Worked
+
+| Concept | Correction approach | New evidence |
+| --- | --- | --- |
+
+## Cross-Concept Links
+
+| Concept | Related concepts | Why it matters |
+| --- | --- | --- |
+
+## Next Recommended Steps
+
+-

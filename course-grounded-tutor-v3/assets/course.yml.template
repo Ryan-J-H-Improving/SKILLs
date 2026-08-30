@@ -1,0 +1,71 @@
+workspace_schema_version: 1
+workspace_migration_status: "not_required"
+workspace_role: "canonical"
+canonical_course_dir: ""
+mirror_last_synced_at: ""
+mirror_canonical_blueprint_sha256: ""
+mirror_canonical_learning_state_sha256: ""
+created_with_skill_version: "3.2.3"
+last_migrated_with_skill_version: ""
+workspace_audit_command: "python scripts/audit_course_workspace.py --course-dir <course-dir>"
+
+course:
+  course_instance_id: ""
+  course_code: ""
+  course_title: ""
+  institution: ""
+  department: ""
+  term: ""
+  year: ""
+  lecturers: []
+  source_version: ""
+  materials_hash: ""
+  related_course_instances: []
+
+contracts:
+  reply_language:
+    value: ""
+    source: ""
+    locked: true
+    change_rule: "explicit_user_request_only"
+  note_language:
+    value: ""
+    source: "defaults_to_reply_language"
+    locked: true
+    change_rule: "explicit_user_request_only"
+
+teaching:
+  teaching_profile: ""
+  profile_source: ""
+  locked: true
+  blueprint:
+    path: "indexes/teaching-blueprint.md"
+    version: "3.1"
+    status: "draft"
+    source_fingerprint: ""
+    validation_command: "python scripts/validate_teaching_blueprint.py --blueprint <course-dir>/indexes/teaching-blueprint.md --report text"
+    promotion_command: "python scripts/validate_teaching_blueprint.py --blueprint <course-dir>/indexes/teaching-blueprint.md --promote --report text"
+  delivery_defaults:
+    learning_cycle: "one coherent knowledge point, then one post-point exercise set"
+    exercise_set: "3 answer actions by default; 4-5 only for distinct examinable operations"
+    separate_readiness_quiz: false
+    auto_advance_after_valid_answer: true
+    ask_to_continue_after_valid_answer: false
+    reuse_existing_evidence: true
+    learning_scoring: "diagnostic_without_numeric_score_by_default"
+    proactive_visuals: true
+    immediate_remediation_rounds_per_error: 1
+    full_remaining_lesson_audit_after_tutor_gaps: 2
+    stop_on_fatigue_or_pause: true
+
+source_priority:
+  - "current_term_slides"
+  - "current_term_transcripts"
+  - "current_term_exams"
+  - "related_term_materials"
+  - "general_knowledge_marked_as_extra"
+
+status:
+  current_mode: "learning"
+  last_updated: ""
+  unresolved_identification_questions: []

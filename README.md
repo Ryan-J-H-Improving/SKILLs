@@ -1,5 +1,5 @@
 # SKILLs
-A Codex Skill for students who want AI tutoring that stays grounded in their actual course materials instead of drifting into generic explanations.
+A platform-aware AI tutoring skill for students who want teaching grounded in their actual course materials instead of generic explanations.
 
 Personal Codex skills distilled from real study, work, and life experience.
 
@@ -9,7 +9,13 @@ This repository collects Codex skills I created from practical problems I have p
 
 | Skill | Description |
 | --- | --- |
-| [course-grounded-tutor](./course-grounded-tutor) | A course-grounded AI tutoring workflow that teaches from lecture slides, transcripts, exams, notes, and personalized learning memory while preserving course notation, language contracts, weak-point tracking, and exam-review behavior. |
+| [course-grounded-tutor-v3](./course-grounded-tutor-v3) | **Recommended: V3.2.3.** Adds validated teaching blueprints, bounded exercise contracts, canonical-workspace protection, note auditing, figure delivery checks, stable progress tracking, and safe mirror synchronization. |
+| [course-grounded-tutor-v2](./course-grounded-tutor-v2) | Previous V2 workflow, retained for version history and comparison. |
+| [course-grounded-tutor](./course-grounded-tutor) | Original V1 workflow, retained as the first stable release. |
+
+## Current Release
+
+`course-grounded-tutor-v3` is the maintained version. V3.2.3 standardizes where new teaching figures are stored without moving already validated assets, and requires a mirror to copy and verify the exact canonical file before updating its recorded hash.
 
 ## Purpose
 
@@ -40,25 +46,27 @@ skill-name/
 
 ## Usage
 
-Clone or download this repository, then copy the skill folder you want to use into your Codex skills directory.
+Clone or download this repository, then copy the versioned skill folder you want to use into your agent's skill directory.
 
-For example, to install `course-grounded-tutor`:
+For example, to install the recommended V3 release in Codex:
 
 ```text
-~/.codex/skills/course-grounded-tutor
+~/.codex/skills/course-grounded-tutor-v3
 ```
 
 On Windows, this is usually:
 
 ```text
-%USERPROFILE%\.codex\skills\course-grounded-tutor
+%USERPROFILE%\.codex\skills\course-grounded-tutor-v3
 ```
 
 Then start a new Codex chat and invoke it with:
 
 ```text
-Use $course-grounded-tutor to teach from these lecture slides and transcript.
+Use $course-grounded-tutor-v3 to teach from these lecture slides and transcript.
 ```
+
+Other agents can use the same `SKILL.md` and supporting files when they support Agent Skills-style instructions and local Python execution. `agents/openai.yaml` is an optional Codex adapter.
 
 ## License
 

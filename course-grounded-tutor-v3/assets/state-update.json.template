@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "course_dir": ".ai-course-tutor/courses/<course-instance-id>",
+  "mode": "learning",
+  "topic": "<current knowledge point>",
+  "current_lesson": "<lesson identifier>",
+  "lesson_progress": "<current/total>",
+  "point_id": "<stable semantic blueprint Point ID>",
+  "point_status": "teaching",
+  "blueprint_path": "indexes/teaching-blueprint.md",
+  "blueprint_status": "ready",
+  "source_fingerprint": "<must match the validated blueprint>",
+  "transcript_gate": "passed",
+  "transcript_evidence": "<precise transcript locator or not_supplied>",
+  "formula_gate": "not_required",
+  "coverage_gate": "not_started",
+  "exercise_status": "not_started",
+  "auto_advance": "no",
+  "tutor_coverage_failures": 0,
+  "remaining_lesson_audit": "not_required",
+  "tutor_coverage_gap": false,
+  "follow_up": "<next authorized teaching action>"
+}
