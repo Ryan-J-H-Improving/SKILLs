@@ -1,0 +1,57 @@
+# Teaching Blueprint: <Course>
+
+- Blueprint version: 3.1
+- Blueprint status: draft
+- Source fingerprint: <hash-or-version>
+- Available scope: <all currently supplied lessons or weeks>
+- Total knowledge points: <number>
+- Last validated: <timestamp>
+
+## Whole-Scope Narrative
+
+<Explain the course or available-scope learning arc and why the order is coherent.>
+
+## Order Audit
+
+<Record source-order changes, restored transcript bridges, hidden prerequisites, and deferred enrichment.>
+
+## Knowledge-Point Plan
+
+### Point 1/<total>: <Stable title>
+
+- Point ID: <stable lesson-point ID, for example week-03-point-02>
+- Previous dependency: <last concept or none for first point>
+- Why now: <connection to preceding point>
+- Course question: <problem or limitation resolved>
+- Slides/document evidence: <source ID and precise locator>
+- Transcript status: <available or not supplied>
+- Transcript evidence: <timestamp, semantic passage locator, or explicit not-supplied statement>
+- Teacher transition: <spoken connection, not only topic label>
+- Teacher sequence: <order used by lecturer>
+- Source layers: <course core; supporting; AI-added bridge; enrichment boundary>
+- New terms: <term and definition timing>
+- Formula construction: <objects; fixed/varying roles; operations; final notation; units or normalization>
+- Visual decision: <validated source figure, AI teaching aid, or none required with reason>
+- Worked example: <new complete demonstration>
+- Eligible relationships: <R1 = canonical relationship meaning; R2 = canonical relationship meaning; continue as needed>
+- Explanation mapping: <R1 = exact learner-visible explanation locator; R2 = exact learner-visible explanation locator>
+- Demonstration mapping: <R1 = exact worked-example step or durable note locator; R2 = exact worked-example step or durable note locator>
+- Exercise coverage: <A1 -> R1; A2 -> R1; A3 -> R2; use 3-5 mappings and count every requested explanation or calculation separately>
+- Question-rubric boundary: <each relationship has one explicit prompt and one matching criterion; no hidden inference or marking requirement>
+- Difficulty: <why meaningful and how it differs from worked example>
+- Automatic-advance evidence: <evidence required to complete this point>
+- Load risk: <likely confusion and planned control>
+
+## Three-Pass Validation
+
+- Source fidelity: pending
+- Dependency and order: pending
+- Novice and assessment: pending
+
+## Change Log
+
+### <Date>
+
+- Change:
+- Reason:
+- Affected points:
