@@ -2,14 +2,16 @@
 
 - Blueprint version: 3.1
 - Blueprint status: draft
+- Blueprint scope: lesson
+- Lesson ID: lesson-01
 - Source fingerprint: <hash-or-version>
-- Available scope: <all currently supplied lessons or weeks>
+- Available scope: <one lecture, tutorial, lab, or other coherent lesson>
 - Total knowledge points: <number>
 - Last validated: <timestamp>
 
 ## Whole-Scope Narrative
 
-<Explain the course or available-scope learning arc and why the order is coherent.>
+<Explain this lesson's learning arc, its prior-course dependency, and why the order is coherent.>
 
 ## Order Audit
 

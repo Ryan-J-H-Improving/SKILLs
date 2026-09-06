@@ -98,13 +98,13 @@ Before displaying a question:
 3. Ask the validator to promote the draft only when its content and blueprint binding pass:
 
    ```bash
-   python scripts/validate_exercise_contract.py --contract <contract.json> --blueprint <teaching-blueprint.md> --progress <current/total> --promote --report text
+   python scripts/validate_exercise_contract.py --contract <contract.json> --blueprint <active-lesson-blueprint.md> --progress <current/lesson-total> --promote --report text
    ```
 
 4. Render with:
 
    ```bash
-   python scripts/render_exercise_contract.py --contract <contract.json> --blueprint <teaching-blueprint.md> --progress <current/total>
+   python scripts/render_exercise_contract.py --contract <contract.json> --blueprint <active-lesson-blueprint.md> --progress <current/lesson-total>
    ```
 
 5. Display the rendered output verbatim. Do not add another question, subpart, explanation request, or scoring condition around it.

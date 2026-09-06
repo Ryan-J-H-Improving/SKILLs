@@ -1,4 +1,4 @@
 interface:
-  display_name: "Course Grounded Tutor V3.2.3"
+  display_name: "Course Grounded Tutor V3.3.1"
   short_description: "Source-grounded tutoring with validated lesson plans and atomic exercise contracts."
-  default_prompt: "Use $course-grounded-tutor-v3 to identify this course, validate a whole-scope teaching blueprint from slides and transcripts, preserve locked language and course notation, teach one coherent point at a time, validate and render one atomic exercise contract, and advance automatically only after valid answers."
+  default_prompt: "Use $course-grounded-tutor-v3 to identify this course, resolve its canonical workspace, maintain a cumulative course map plus one validated blueprint per lesson, preserve locked language and course notation, teach one coherent point at a time, validate and render one atomic exercise contract, and advance automatically only after valid answers."

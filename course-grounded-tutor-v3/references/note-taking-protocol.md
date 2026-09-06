@@ -29,7 +29,7 @@ Maintain AI continuity separately in `memory/`.
 
 ## Course Map
 
-`course-map.md` is the learner-facing navigation layer. It answers "which lecture covered this concept?" and helps future chats retrieve relevant sources quickly. Derive its lesson order and totals from the validated `indexes/teaching-blueprint.md`; do not maintain a competing point order.
+`course-map.md` is the cumulative learner-facing navigation layer. It answers "which lecture covered this concept?" and helps future chats retrieve relevant sources quickly. Derive lesson presence and order from `indexes/blueprints/manifest.json`, and derive each lesson's point total from its registered blueprint; do not merge all point totals into one active denominator.
 
 `notes/course-map.md` is the only canonical learner-facing map. A weekly or alternate map is permitted only as a derived view and must state `Derived from: notes/course-map.md`; it must not define a competing point order, status, or total.
 

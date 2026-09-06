@@ -7,7 +7,8 @@ Preserve teaching quality across context compression, separate chats, lower reas
 ## Files
 
 ```text
-indexes/teaching-blueprint.md
+indexes/blueprints/manifest.json
+indexes/blueprints/<lesson-id>.md
 memory/learning-state.md
 memory/session-log.md
 memory/weak-points.md
@@ -16,11 +17,11 @@ memory/exercise-contracts/<exercise-set-id>.json
 notes/course-map.md
 ```
 
-The blueprint is canonical for source scope, point order, dependencies, and total. The current-state block is canonical for execution progress. Append-only logs are evidence, not current truth.
+The manifest registers all lesson blueprints and identifies the active lesson. The active blueprint is canonical for that lesson's point order, dependencies, and total. The course map is cumulative across lessons. The current-state block is canonical for execution progress.
 
-`course.yml` stores the unique top-level `workspace_schema_version`, `workspace_migration_status`, and `workspace_role`. Do not infer these values from indented generic keys such as `version` or `status`. Current schema version is `1`; blueprint format version is independently `3.1`. Formal teaching requires migration status `complete` or `not_required` and workspace role `canonical`.
+`course.yml` stores the unique top-level `workspace_schema_version`, `workspace_migration_status`, and `workspace_role`. Do not infer these values from indented generic keys such as `version` or `status`. Current schema version is `2`; blueprint format version remains `3.1`. Schema 2 adds the lesson blueprint manifest, active lesson ID, and lesson-local progress contract. Formal teaching requires migration status `complete` or `not_required` and workspace role `canonical`.
 
-Use `reference_mirror` only for a duplicate retained for discovery or recovery. It must record an absolute `canonical_course_dir`, last-sync time, and the canonical blueprint and learning-state hashes observed at that sync. Drift warnings describe mirror freshness; they never authorize teaching from the mirror. There must be only one writable canonical state and one exercise-contract history for each course instance.
+Use `reference_mirror` only for discovery or recovery. Prefer `mirror_mode: pointer_only`, containing only `course.yml` and optional `MIRROR.md`. A retained legacy snapshot must record sync time and canonical blueprint/state hashes; any local hash change or course-owned file modified after sync makes it invalid. Mirrors never own notes, contracts, figures, assignments, plans, or progress. Resolve the canonical path again before every durable write.
 
 ## Point States
 
@@ -145,7 +146,7 @@ At a new chat or after context loss:
 
 1. Read `.ai-course-tutor/index.md` and identify the course from materials and fingerprints.
 2. Read `course.yml` and `indexes/source-register.md`.
-3. Read and validate `indexes/teaching-blueprint.md`.
+3. Read and validate `indexes/blueprints/manifest.json` and the active lesson blueprint declared by `course.yml`.
 4. Read `memory/learning-state.md`, active weak points, and the relevant practice evidence.
 5. Read the current point in `notes/course-map.md`.
 6. Check all four gates and cross-file consistency.

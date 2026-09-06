@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Update V3.1 canonical learning state and durable milestone records."""
+"""Update canonical learning state and durable milestone records."""
 
 from __future__ import annotations
 
@@ -16,10 +16,15 @@ from exercise_contract import (
     validate_contract_file,
 )
 from validate_teaching_blueprint import get_point_binding, parse_fields, validate_blueprint
+from lesson_blueprints import validate_manifest
 from workspace_common import (
+    BLUEPRINT_VERSION,
     WORKSPACE_SCHEMA_VERSION,
+    active_blueprint_path,
     atomic_write_text,
     file_sha256,
+    lesson_id_from_point_id,
+    relative_course_path,
     reference_mirror_write_error,
     yaml_scalar_paths,
 )
@@ -265,6 +270,18 @@ def formal_teaching_requested(args: argparse.Namespace) -> bool:
     )
 
 
+def prepare_blueprint_path(args: argparse.Namespace) -> None:
+    if args.blueprint_path.strip():
+        return
+    course_yml = args.course_dir / "course.yml"
+    if course_yml.is_file():
+        args.blueprint_path = relative_course_path(
+            args.course_dir, active_blueprint_path(args.course_dir)
+        )
+    else:
+        args.blueprint_path = "indexes/teaching-blueprint.md"
+
+
 def verify_formal_blueprint(
     args: argparse.Namespace, parser: argparse.ArgumentParser
 ) -> None:
@@ -293,11 +310,25 @@ def verify_formal_blueprint(
         parser.error(
             "formal teaching is blocked: course.yml does not record a promoted blueprint"
         )
+    manifest_errors = validate_manifest(args.course_dir)
+    if manifest_errors:
+        parser.error(
+            "formal teaching is blocked: lesson blueprint registry is invalid: "
+            + "; ".join(manifest_errors)
+        )
 
-    blueprint_path = Path(args.blueprint_path)
-    if not blueprint_path.is_absolute():
-        blueprint_path = args.course_dir / blueprint_path
-    blueprint_path = blueprint_path.resolve()
+    declared_blueprint = active_blueprint_path(args.course_dir)
+    if args.blueprint_path.strip():
+        blueprint_path = Path(args.blueprint_path)
+        if not blueprint_path.is_absolute():
+            blueprint_path = args.course_dir / blueprint_path
+        blueprint_path = blueprint_path.resolve()
+        if blueprint_path != declared_blueprint:
+            parser.error(
+                "formal teaching must use the active lesson blueprint declared in course.yml"
+            )
+    else:
+        blueprint_path = declared_blueprint
     errors = validate_blueprint(blueprint_path, args.lesson_progress)
     if errors:
         parser.error("formal teaching requires a validated blueprint: " + "; ".join(errors))
@@ -318,14 +349,24 @@ def verify_formal_blueprint(
     if get_point_binding(blueprint_path, args.point_id) is None:
         parser.error("point ID is not present in the validated blueprint")
 
+    active_lesson = metadata.get("teaching.blueprint.active_lesson_id", "")
+    point_lesson = lesson_id_from_point_id(args.point_id)
+    if active_lesson and point_lesson != active_lesson:
+        parser.error(
+            f"point ID belongs to lesson {point_lesson!r}, not active lesson {active_lesson!r}"
+        )
+
     declared_version = metadata.get("teaching.blueprint.version", "")
-    if declared_version and declared_version != "3.1":
-        parser.error("course.yml teaching.blueprint.version does not match blueprint 3.1")
+    if declared_version and declared_version != BLUEPRINT_VERSION:
+        parser.error(
+            f"course.yml teaching.blueprint.version does not match blueprint {BLUEPRINT_VERSION}"
+        )
     declared_fingerprint = metadata.get("teaching.blueprint.source_fingerprint", "")
     if declared_fingerprint and declared_fingerprint != actual_fingerprint:
         parser.error("course.yml source fingerprint does not match the validated blueprint")
     args.blueprint_status = "ready"
     args.blueprint_resolved = str(blueprint_path)
+    args.blueprint_path = relative_course_path(args.course_dir, blueprint_path)
     args.blueprint_hash = file_sha256(blueprint_path)
 
 
@@ -368,6 +409,12 @@ def load_exercise_contract(
     if not contract_path.is_absolute():
         contract_path = args.course_dir / contract_path
     contract_path = contract_path.resolve()
+    try:
+        contract_path.relative_to(args.course_dir.resolve())
+    except ValueError:
+        parser.error(
+            "exercise contracts used for durable state must be inside the canonical course workspace"
+        )
     data, errors = validate_contract_file(contract_path)
     if errors:
         parser.error("invalid exercise contract: " + "; ".join(errors))
@@ -399,7 +446,7 @@ def load_exercise_contract(
         parser.error("exercise contract does not match state: " + "; ".join(mismatches))
 
     args.exercise_contract_valid = True
-    args.exercise_contract_resolved = str(contract_path)
+    args.exercise_contract_resolved = relative_course_path(args.course_dir, contract_path)
     args.exercise_contract_hash = contract_sha256(contract_path)
     args.blueprint_resolved = str(blueprint_path)
 
@@ -495,7 +542,7 @@ def main() -> int:
     parser.add_argument("--point-id", default="")
     parser.add_argument("--current-point", default="")
     parser.add_argument("--point-status", default="")
-    parser.add_argument("--blueprint-path", default="indexes/teaching-blueprint.md")
+    parser.add_argument("--blueprint-path", default="")
     parser.add_argument("--blueprint-status", default="")
     parser.add_argument("--source-fingerprint", default="")
     parser.add_argument("--transcript-gate", default="")
@@ -592,6 +639,7 @@ def main() -> int:
         return 0
     args.blueprint_resolved = ""
     args.blueprint_hash = ""
+    prepare_blueprint_path(args)
     load_exercise_contract(args, parser)
     verify_formal_blueprint(args, parser)
     validate_advance(args, parser)

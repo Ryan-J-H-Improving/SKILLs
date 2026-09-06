@@ -11,6 +11,8 @@ import argparse
 import re
 from pathlib import Path
 
+from workspace_common import course_write_error
+
 
 def parse_pages(spec: str) -> list[int]:
     pages: list[int] = []
@@ -79,6 +81,9 @@ def main() -> int:
     if not pdf_path.is_file():
         parser.error(f"PDF not found: {pdf_path}")
     out_dir = Path(args.out)
+    mirror_error = course_write_error(out_dir)
+    if mirror_error:
+        parser.error("figure extraction is blocked: " + mirror_error)
     out_dir.mkdir(parents=True, exist_ok=True)
     try:
         rect_values = parse_rect(args.rect)

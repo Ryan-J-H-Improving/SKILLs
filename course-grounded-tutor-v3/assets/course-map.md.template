@@ -2,7 +2,8 @@
 
 - Authority: canonical learner-facing course map
 - Teaching profile:
-- Canonical blueprint: `indexes/teaching-blueprint.md`
+- Active lesson blueprint: `indexes/blueprints/lesson-01.md`
+- Lesson blueprint registry: `indexes/blueprints/manifest.json`
 - Blueprint source fingerprint:
 - Blueprint validation status:
 

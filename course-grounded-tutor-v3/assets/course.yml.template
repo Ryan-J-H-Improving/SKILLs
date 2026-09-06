@@ -1,11 +1,12 @@
-workspace_schema_version: 1
+workspace_schema_version: 2
 workspace_migration_status: "not_required"
 workspace_role: "canonical"
 canonical_course_dir: ""
 mirror_last_synced_at: ""
 mirror_canonical_blueprint_sha256: ""
 mirror_canonical_learning_state_sha256: ""
-created_with_skill_version: "3.2.3"
+mirror_mode: ""
+created_with_skill_version: "3.3.1"
 last_migrated_with_skill_version: ""
 workspace_audit_command: "python scripts/audit_course_workspace.py --course-dir <course-dir>"
 
@@ -39,12 +40,14 @@ teaching:
   profile_source: ""
   locked: true
   blueprint:
-    path: "indexes/teaching-blueprint.md"
+    path: "indexes/blueprints/lesson-01.md"
+    active_lesson_id: "lesson-01"
+    manifest_path: "indexes/blueprints/manifest.json"
     version: "3.1"
     status: "draft"
     source_fingerprint: ""
-    validation_command: "python scripts/validate_teaching_blueprint.py --blueprint <course-dir>/indexes/teaching-blueprint.md --report text"
-    promotion_command: "python scripts/validate_teaching_blueprint.py --blueprint <course-dir>/indexes/teaching-blueprint.md --promote --report text"
+    validation_command: "python scripts/validate_teaching_blueprint.py --blueprint <active-lesson-blueprint> --report text"
+    promotion_command: "python scripts/validate_teaching_blueprint.py --blueprint <lesson-blueprint> --promote --activate --report text"
   delivery_defaults:
     learning_cycle: "one coherent knowledge point, then one post-point exercise set"
     exercise_set: "3 answer actions by default; 4-5 only for distinct examinable operations"

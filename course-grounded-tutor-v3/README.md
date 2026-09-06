@@ -1,4 +1,4 @@
-# Course Grounded Tutor V3.2.3
+# Course Grounded Tutor V3.3.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent-Skill-black)](#installation)
@@ -6,7 +6,21 @@
 
 A course-grounded AI tutoring workflow for lecture slides, teacher transcripts, school questions, exam papers, datasets, personalized notes, and learning memory.
 
-V3.2.3 makes new figure storage predictable and prevents mirror hashes from claiming a sync that did not copy the tracked file.
+V3.3.1 prevents long-running chats from writing into migrated mirrors, standardizes one immutable blueprint per lesson, and removes legacy cumulative Point numbering from lesson-scoped plans.
+
+## What's New In V3.3.1
+
+- **No mixed progress models:** lesson blueprints reject old cumulative references such as `Point 39/54` or claims that a global denominator controls progress.
+- **Stable dependency references:** cumulative-blueprint migration rewrites old Point numbers to stable IDs such as `week-05-p01` before lesson files are activated.
+- **Visible lesson-local notes:** existing state and learner notes can use `Week 5 - 2/16` consistently without hidden `40/54` instructions steering the agent back to cumulative progress.
+
+## What's New In V3.3.0
+
+- **Pre-write canonical resolution:** resolve the current course path again before every durable write; a chat-start audit is no longer treated as permanent authorization.
+- **Dirty-mirror detection:** snapshot mirrors fail audit when local state/blueprints change or course-owned files appear after sync; pointer-only mirrors reject any teaching payload.
+- **Lesson-scoped blueprints:** every active blueprint contains exactly one lesson, while the manifest and course map preserve cross-lesson continuity.
+- **Local progress totals:** display `Week 5 - 2/16`, not a cumulative `40/54` that obscures the current lesson.
+- **Safe scope migration:** a sidecar workflow backs up the old blueprint, splits cumulative plans, preserves historical anchors, and rebinds active contracts.
 
 ## What's New In V3.2.3
 
@@ -84,7 +98,7 @@ V3 turns these failure modes into explicit gates backed by a durable, validated 
 
 ## What's New In V3
 
-- **Whole-scope teaching blueprint:** analyzes all currently supplied lessons before detailed teaching and records the coherent learning order.
+- **Whole-course roadmap plus lesson blueprints:** analyzes all supplied lessons for coherent order, then keeps each lesson's executable point plan separate.
 - **Transcript evidence gate:** stores the lecturer's transition and explanation sequence for every point, not only a transcript citation.
 - **Formula construction gate:** requires objects, fixed/varying roles, relationships, operations, transformations, units, and normalization before the complete formula is used.
 - **One exercise set per point:** removes the guided-check plus independent-practice duplication.
@@ -103,8 +117,8 @@ V3 retains V2's stable language contracts, course notation, proactive validated 
 flowchart TD
   A["Upload slides, transcript, questions, or exams"] --> B["Identify course and register sources"]
   B --> C["Lock reply language, note language, notation, and teaching profile"]
-  C --> D["Analyze the full available scope"]
-  D --> E["Build teaching-blueprint.md"]
+  C --> D["Analyze the full available scope into the course map"]
+  D --> E["Build one registered blueprint per lesson"]
   E --> F{"Three blueprint audits pass?"}
   F -- No --> D
   F -- Yes --> G["Teach one coherent knowledge point"]
@@ -178,7 +192,9 @@ The skill keeps course data in the project workspace, outside the distributable 
         figures/
       indexes/
         source-register.md
-        teaching-blueprint.md
+        blueprints/
+          manifest.json
+          <lesson-id>.md
       memory/
         exercise-contracts/
         learning-state.md
@@ -196,22 +212,22 @@ The skill keeps course data in the project workspace, outside the distributable 
         school-question-patterns.md
 ```
 
-`indexes/teaching-blueprint.md` preserves teaching quality. `memory/learning-state.md` stores current execution. `notes/course-map.md` remains the learner-facing concept locator.
+`indexes/blueprints/manifest.json` registers lesson plans and the active lesson. `memory/learning-state.md` stores current execution. `notes/course-map.md` remains the cumulative learner-facing concept locator.
 
-Each course instance must have exactly one writable `canonical` workspace. A duplicate kept for discovery or recovery is marked `reference_mirror`; its index entry points to `canonical_course_dir`, and the bundled validators reject durable teaching writes in the mirror.
+Each course instance must have exactly one writable `canonical` workspace. A duplicate kept for discovery is a pointer-only `reference_mirror`; its index points to `canonical_course_dir`, and it contains no notes, contracts, figures, assignments, or progress. The resolver and audit must be rerun before durable writes so an old chat cannot keep using a path that was reclassified during migration.
 
 ## Blueprint Preflight
 
-Before the first detailed explanation, V3.1:
+Before the first detailed explanation, V3.3:
 
 1. Inspects all currently supplied slides, matching transcript passages, assessments, and existing learning evidence.
 2. Segments transcripts into usable semantic passages even when timestamps or line numbers are coarse.
-3. Designs the dependency order and restores lecturer transitions.
-4. Plans terminology, formula operations, visuals, worked examples, exercise coverage, and likely load risks for every point.
+3. Designs the course-wide dependency order in the course map and restores lecturer transitions.
+4. Creates one lesson blueprint at a time, with terminology, formula operations, visuals, worked examples, exercise coverage, and likely load risks for every point.
 5. Runs separate source-fidelity, dependency-order, and novice-assessment audits.
 6. Validates the completed file with the bundled script.
 
-When only part of the course is available, the blueprint covers that full available scope and marks future material unavailable instead of inventing it.
+When only part of the course is available, the course map marks future material unavailable. A new week receives a new blueprint file; it is never appended to the preceding week's active blueprint.
 
 ## Exercises And Marking
 
@@ -282,8 +298,16 @@ Validate a completed teaching blueprint and its progress denominator:
 
 ```bash
 python scripts/validate_teaching_blueprint.py \
-  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/teaching-blueprint.md \
-  --progress 2/10 --promote --report text
+  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/blueprints/week-03.md \
+  --progress 2/10 --promote --activate --report text
+```
+
+Resolve a path immediately before teaching or writing:
+
+```bash
+python scripts/resolve_course_workspace.py \
+  --course-dir .ai-course-tutor/courses/example-course-2026-s1 \
+  --require-ready
 ```
 
 Audit a course before formal teaching:
@@ -306,12 +330,12 @@ Validate and render an exercise before showing it:
 ```bash
 python scripts/validate_exercise_contract.py \
   --contract .ai-course-tutor/courses/example-course-2026-s1/memory/exercise-contracts/week03-point02.json \
-  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/teaching-blueprint.md \
+  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/blueprints/week-03.md \
   --progress 2/10 --promote --report text
 
 python scripts/render_exercise_contract.py \
   --contract .ai-course-tutor/courses/example-course-2026-s1/memory/exercise-contracts/week03-point02.json \
-  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/teaching-blueprint.md \
+  --blueprint .ai-course-tutor/courses/example-course-2026-s1/indexes/blueprints/week-03.md \
   --progress 2/10
 ```
 
@@ -357,6 +381,15 @@ python scripts/migrate_blueprint_v3_to_v31.py activate \
 ```
 
 While migration is incomplete, the tutor may answer an explicitly requested local clarification but cannot continue formal teaching, issue exercises, score answers, record mastery, or advance progress.
+
+Register or split a V3.1 blueprint into schema-2 lesson files:
+
+```bash
+python scripts/migrate_lesson_blueprints.py plan --course-dir <course-dir>
+python scripts/migrate_lesson_blueprints.py create-draft --course-dir <course-dir>
+python scripts/migrate_lesson_blueprints.py activate --course-dir <course-dir> --dry-run
+python scripts/migrate_lesson_blueprints.py activate --course-dir <course-dir>
+```
 
 Legacy `sources.md`, handwritten learning state, and old course metadata use a separate conservative migration chain:
 

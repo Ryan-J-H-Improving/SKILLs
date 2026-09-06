@@ -9,13 +9,13 @@ This repository collects Codex skills I created from practical problems I have p
 
 | Skill | Description |
 | --- | --- |
-| [course-grounded-tutor-v3](./course-grounded-tutor-v3) | **Recommended: V3.2.3.** Adds validated teaching blueprints, bounded exercise contracts, canonical-workspace protection, note auditing, figure delivery checks, stable progress tracking, and safe mirror synchronization. |
+| [course-grounded-tutor-v3](./course-grounded-tutor-v3) | **Recommended: V3.3.1.** Adds lesson-scoped teaching blueprints, bounded exercise contracts, pre-write canonical resolution, dirty-mirror blocking, note auditing, figure delivery checks, and lesson-local progress. |
 | [course-grounded-tutor-v2](./course-grounded-tutor-v2) | Previous V2 workflow, retained for version history and comparison. |
 | [course-grounded-tutor](./course-grounded-tutor) | Original V1 workflow, retained as the first stable release. |
 
 ## Current Release
 
-`course-grounded-tutor-v3` is the maintained version. V3.2.3 standardizes where new teaching figures are stored without moving already validated assets, and requires a mirror to copy and verify the exact canonical file before updating its recorded hash.
+`course-grounded-tutor-v3` is the maintained version. V3.3.1 prevents long-running chats from writing to a workspace that has since become a mirror, separates the cumulative course map from one blueprint per lesson, and rejects legacy cumulative progress references inside lesson-scoped plans.
 
 ## Purpose
 

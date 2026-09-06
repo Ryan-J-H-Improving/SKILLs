@@ -22,7 +22,12 @@ from exercise_contract import (  # noqa: E402
     validate_contract,
 )
 from validate_teaching_blueprint import validate_blueprint  # noqa: E402
-from workspace_common import file_sha256, set_yaml_scalar, yaml_scalar_paths  # noqa: E402
+from workspace_common import (  # noqa: E402
+    active_blueprint_path,
+    file_sha256,
+    set_yaml_scalar,
+    yaml_scalar_paths,
+)
 
 
 def valid_blueprint(total: int = 1) -> str:
@@ -59,6 +64,8 @@ def valid_blueprint(total: int = 1) -> str:
 
 - Blueprint version: 3.1
 - Blueprint status: ready
+- Blueprint scope: lesson
+- Lesson ID: week-02
 - Source fingerprint: abc123
 - Available scope: Week 3 supplied materials
 - Total knowledge points: {total}
@@ -181,13 +188,43 @@ def write_blueprint(course_dir: Path, total: int = 8) -> Path:
     course_text = course_text.replace(
         'source_fingerprint: ""', 'source_fingerprint: "abc123"', 1
     )
+    course_text = course_text.replace(
+        'active_lesson_id: "lesson-01"', 'active_lesson_id: "week-02"', 1
+    )
+    course_text = course_text.replace(
+        'path: "indexes/blueprints/lesson-01.md"',
+        'path: "indexes/blueprints/week-02.md"',
+        1,
+    )
     (course_dir / "course.yml").write_text(
         course_text,
         encoding="utf-8",
     )
-    path = course_dir / "indexes" / "teaching-blueprint.md"
+    path = course_dir / "indexes" / "blueprints" / "week-02.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(valid_blueprint(total), encoding="utf-8")
+    (path.parent / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "course_instance_id": course_dir.name,
+                "active_lesson_id": "week-02",
+                "lessons": [
+                    {
+                        "lesson_id": "week-02",
+                        "path": "indexes/blueprints/week-02.md",
+                        "point_count": total,
+                        "status": "ready",
+                        "sha256": file_sha256(path),
+                        "source_fingerprint": "abc123",
+                    }
+                ],
+                "legacy_blueprints": [],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     return path
 
 
@@ -323,7 +360,7 @@ class WorkspaceBlueprintAndMemoryTests(unittest.TestCase):
             "--confirm-no-known-canonical",
         )
         course_dir = workspace / "courses" / course_id
-        blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+        blueprint = course_dir / "indexes" / "blueprints" / "lesson-01.md"
         blueprint.write_text(
             valid_blueprint(1).replace(
                 "Blueprint status: ready", "Blueprint status: draft"
@@ -381,7 +418,8 @@ class WorkspaceBlueprintAndMemoryTests(unittest.TestCase):
             ]:
                 self.assertTrue((course_dir / relative).is_dir())
             self.assertTrue((course_dir / "indexes" / "source-register.md").is_file())
-            self.assertTrue((course_dir / "indexes" / "teaching-blueprint.md").is_file())
+            self.assertTrue((course_dir / "indexes" / "blueprints" / "lesson-01.md").is_file())
+            self.assertTrue((course_dir / "indexes" / "blueprints" / "manifest.json").is_file())
             self.assertIn(
                 "example-course-2026-s1", (workspace / "index.md").read_text("utf-8")
             )
@@ -747,7 +785,7 @@ y = x
     def test_templates_share_workspace_and_blueprint_versions(self) -> None:
         course_template = SKILL_ROOT / "assets" / "course.yml.template"
         fields = yaml_scalar_paths(course_template)
-        self.assertEqual(fields["workspace_schema_version"], "1")
+        self.assertEqual(fields["workspace_schema_version"], "2")
         self.assertEqual(fields["workspace_migration_status"], "not_required")
         self.assertEqual(fields["workspace_role"], "canonical")
         self.assertEqual(fields["teaching.blueprint.version"], "3.1")
@@ -790,13 +828,14 @@ teaching:
                 workspace, "example-course-2026-s2"
             )
             canonical_state = canonical / "memory" / "learning-state.md"
-            canonical_blueprint = canonical / "indexes" / "teaching-blueprint.md"
+            canonical_blueprint = active_blueprint_path(canonical)
 
             mirror = workspace / "courses" / "example-course-mirror"
             (mirror / "indexes").mkdir(parents=True)
-            mirror_yml = f'''workspace_schema_version: 1
+            mirror_yml = f'''workspace_schema_version: 2
 workspace_migration_status: "not_required"
 workspace_role: "reference_mirror"
+mirror_mode: "pointer_only"
 canonical_course_dir: "{canonical}"
 mirror_last_synced_at: "2026-08-29T02:00:00+10:00"
 mirror_canonical_blueprint_sha256: "{file_sha256(canonical_blueprint)}"
@@ -814,10 +853,6 @@ teaching:
     status: "ready"
 '''
             (mirror / "course.yml").write_text(mirror_yml, encoding="utf-8")
-            (mirror / "indexes" / "teaching-blueprint.md").write_text(
-                valid_blueprint(1), encoding="utf-8"
-            )
-
             audit = self.run_script(
                 "audit_course_workspace.py",
                 "--course-dir",
@@ -834,6 +869,10 @@ teaching:
             index = (workspace / "index.md").read_text(encoding="utf-8")
             self.assertIn("Formal teaching: disabled in this mirror", index)
             self.assertIn(f"Path: `{canonical / 'course.yml'}`", index)
+
+            (mirror / "indexes" / "teaching-blueprint.md").write_text(
+                valid_blueprint(1), encoding="utf-8"
+            )
 
             state_blocked = self.run_script(
                 "update_learning_state.py",
@@ -901,9 +940,10 @@ teaching:
             mirror = workspace / "courses" / "drift-mirror"
             mirror.mkdir(parents=True)
             (mirror / "course.yml").write_text(
-                f'''workspace_schema_version: 1
+                f'''workspace_schema_version: 2
 workspace_migration_status: "not_required"
 workspace_role: "reference_mirror"
+mirror_mode: "pointer_only"
 canonical_course_dir: "{canonical}"
 mirror_last_synced_at: "2026-08-29T02:00:00+10:00"
 mirror_canonical_blueprint_sha256: "outdated-blueprint"
@@ -941,9 +981,10 @@ course:
             mirror = workspace / "courses" / "incomplete-course-mirror"
             mirror.mkdir(parents=True)
             (mirror / "course.yml").write_text(
-                f'''workspace_schema_version: 1
+                f'''workspace_schema_version: 2
 workspace_migration_status: "not_required"
 workspace_role: "reference_mirror"
+mirror_mode: "pointer_only"
 canonical_course_dir: "{canonical}"
 course:
   course_instance_id: "incomplete-course"
@@ -1188,7 +1229,7 @@ status:
             self.assertTrue((course_dir / "indexes" / "source-register.md").is_file())
             self.assertTrue((course_dir / "memory" / "exercise-contracts").is_dir())
             metadata = yaml_scalar_paths(course_dir / "course.yml")
-            self.assertEqual(metadata["workspace_schema_version"], "1")
+            self.assertEqual(metadata["workspace_schema_version"], "2")
             self.assertEqual(metadata["workspace_migration_status"], "complete")
             self.assertEqual(metadata["workspace_role"], "canonical")
             self.assertEqual(metadata["canonical_course_dir"], "")
@@ -1211,7 +1252,9 @@ status:
                 str(course_dir),
                 "--format",
                 "json",
+                check=False,
             )
+            self.assertEqual(audit.returncode, 0, audit.stdout + audit.stderr)
             self.assertEqual(json.loads(audit.stdout)["courses"][0]["status"], "ready")
 
     def test_blueprint_promote_is_dry_run_safe_and_updates_course_metadata(self) -> None:
@@ -1222,7 +1265,7 @@ status:
                 (SKILL_ROOT / "assets" / "course.yml.template").read_text("utf-8"),
                 encoding="utf-8",
             )
-            blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+            blueprint = course_dir / "indexes" / "blueprints" / "lesson-01.md"
             blueprint.parent.mkdir(parents=True)
             draft = valid_blueprint(1).replace("Blueprint status: ready", "Blueprint status: draft")
             blueprint.write_text(draft, encoding="utf-8")
@@ -1487,7 +1530,7 @@ status:
                 check=False,
             )
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("validated blueprint", result.stderr)
+            self.assertIn("lesson blueprint registry is invalid", result.stderr)
 
     def test_state_json_supports_dry_run_and_rejects_unknown_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1569,7 +1612,7 @@ status:
                 "--confirm-no-known-canonical",
             )
             course_dir = workspace / "courses" / "fresh-course"
-            blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+            blueprint = course_dir / "indexes" / "blueprints" / "lesson-01.md"
             blueprint.write_text(
                 valid_blueprint(1).replace(
                     "Blueprint status: ready", "Blueprint status: draft"
@@ -1601,7 +1644,9 @@ status:
                 str(course_dir),
                 "--format",
                 "json",
+                check=False,
             )
+            self.assertEqual(audit.returncode, 0, audit.stdout + audit.stderr)
             self.assertEqual(json.loads(audit.stdout)["courses"][0]["status"], "ready")
 
     def test_full_point_cycle_promotes_renders_and_advances(self) -> None:
@@ -1610,7 +1655,7 @@ status:
             course_dir = self.make_ready_course(
                 workspace, "example-course-2026-s2"
             )
-            blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+            blueprint = active_blueprint_path(course_dir)
             contract = write_contract(
                 course_dir,
                 point_id="week-02-point-01",
@@ -1729,7 +1774,7 @@ status:
             course_yml = course_dir / "course.yml"
             course_yml.write_text(
                 course_yml.read_text("utf-8").replace(
-                    "workspace_schema_version: 1", "workspace_schema_version: 0"
+                    "workspace_schema_version: 2", "workspace_schema_version: 0"
                 ),
                 encoding="utf-8",
             )
@@ -1772,7 +1817,7 @@ status:
                 any((course_dir / "indexes").glob("teaching-blueprint.v3-backup-*.md"))
             )
             metadata = yaml_scalar_paths(course_yml)
-            self.assertEqual(metadata["workspace_schema_version"], "1")
+            self.assertEqual(metadata["workspace_schema_version"], "2")
             self.assertEqual(metadata["teaching.blueprint.status"], "ready")
             self.assertEqual(
                 metadata["workspace_migration_status"], "pending_reconciliation"
@@ -1829,7 +1874,9 @@ status:
                 str(course_dir),
                 "--format",
                 "json",
+                check=False,
             )
+            self.assertEqual(audit.returncode, 0, audit.stdout + audit.stderr)
             self.assertEqual(json.loads(audit.stdout)["courses"][0]["status"], "ready")
 
     def test_migration_point_ids_ignore_title_changes_and_preserve_existing_ids(self) -> None:
@@ -2147,6 +2194,201 @@ status:
             self.assertEqual(weak_points.count("### SD vs SE"), 1)
             self.assertIn("Later evidence", weak_points)
             self.assertNotIn("First error", weak_points)
+
+    def test_blueprint_rejects_points_from_multiple_lessons(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            blueprint = Path(temp_dir) / "cumulative.md"
+            cumulative = valid_blueprint(2).replace(
+                "week-02-point-02", "week-03-point-01"
+            )
+            blueprint.write_text(cumulative, encoding="utf-8")
+            errors = validate_blueprint(blueprint)
+            self.assertTrue(any("exactly one lesson" in error for error in errors))
+
+    def test_lesson_blueprint_rejects_legacy_cumulative_point_references(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            blueprint = Path(temp_dir) / "lesson.md"
+            lesson = valid_blueprint(2).replace(
+                "Dependencies and source transitions were checked.",
+                "Dependencies were checked. Previous dependency: Point 39. "
+                "The global denominator remains canonical.",
+            )
+            blueprint.write_text(lesson, encoding="utf-8")
+            errors = validate_blueprint(blueprint)
+            self.assertTrue(any("legacy cumulative Point" in error for error in errors))
+            self.assertTrue(any("global progress denominator" in error for error in errors))
+
+    def test_lesson_blueprint_migration_splits_scope_and_localizes_progress(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir) / ".ai-course-tutor"
+            course_dir = self.make_ready_course(workspace, "split-course")
+            source = active_blueprint_path(course_dir)
+            cumulative = valid_blueprint(2).replace(
+                "week-02-point-02", "week-03-point-01"
+            ).replace(
+                "Dependencies and source transitions were checked.",
+                "Dependencies were checked. Points 1-2 are the cumulative sequence.",
+            ).replace(
+                "- Previous dependency: prior point or course entry",
+                "- Previous dependency: Point 1 or course entry",
+                2,
+            )
+            source.write_text(cumulative, encoding="utf-8")
+            self.run_script(
+                "migrate_lesson_blueprints.py",
+                "create-draft",
+                "--course-dir",
+                str(course_dir),
+            )
+            activated = self.run_script(
+                "migrate_lesson_blueprints.py",
+                "activate",
+                "--course-dir",
+                str(course_dir),
+            )
+            payload = json.loads(activated.stdout)
+            self.assertEqual(payload["lesson_count"], 2)
+            metadata = yaml_scalar_paths(course_dir / "course.yml")
+            self.assertEqual(metadata["workspace_schema_version"], "2")
+            self.assertEqual(metadata["teaching.blueprint.active_lesson_id"], "week-02")
+            self.assertEqual(
+                metadata["teaching.blueprint.path"],
+                "indexes/blueprints/week-02.md",
+            )
+            state = (course_dir / "memory" / "learning-state.md").read_text("utf-8")
+            managed = re.search(
+                r"(?s)<!-- course-grounded-tutor:current-state:start -->.*?"
+                r"<!-- course-grounded-tutor:current-state:end -->",
+                state,
+            ).group(0)
+            self.assertIn("- Lesson progress: 1/1", managed)
+            week_three = (
+                course_dir / "indexes" / "blueprints" / "week-03.md"
+            ).read_text("utf-8")
+            self.assertIn("week-02-point-01 through week-03-point-01", week_three)
+            self.assertIn("week-02-point-01 or course entry", week_three)
+            audit = self.run_script(
+                "audit_course_workspace.py",
+                "--course-dir",
+                str(course_dir),
+                "--format",
+                "json",
+            )
+            self.assertEqual(json.loads(audit.stdout)["courses"][0]["status"], "ready")
+
+    def test_mirror_local_state_mutation_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir) / ".ai-course-tutor"
+            canonical = self.make_ready_course(workspace, "mirror-dirty-course")
+            canonical_blueprint = active_blueprint_path(canonical)
+            canonical_state = canonical / "memory" / "learning-state.md"
+            mirror = workspace / "courses" / "mirror-dirty-copy"
+            local_blueprint = mirror / "indexes" / "blueprints" / "week-02.md"
+            local_state = mirror / "memory" / "learning-state.md"
+            local_blueprint.parent.mkdir(parents=True)
+            local_state.parent.mkdir(parents=True)
+            local_blueprint.write_bytes(canonical_blueprint.read_bytes())
+            local_state.write_bytes(canonical_state.read_bytes())
+            (mirror / "course.yml").write_text(
+                f'''workspace_schema_version: 2
+workspace_migration_status: "not_required"
+workspace_role: "reference_mirror"
+mirror_mode: "snapshot"
+canonical_course_dir: "{canonical}"
+mirror_last_synced_at: "2099-01-01T00:00:00Z"
+mirror_canonical_blueprint_sha256: "{file_sha256(canonical_blueprint)}"
+mirror_canonical_learning_state_sha256: "{file_sha256(canonical_state)}"
+course:
+  course_instance_id: "mirror-dirty-course"
+teaching:
+  blueprint:
+    path: "indexes/blueprints/week-02.md"
+''',
+                encoding="utf-8",
+            )
+            local_state.write_text(
+                local_state.read_text("utf-8") + "\nunauthorized local progress\n",
+                encoding="utf-8",
+            )
+            audit = self.run_script(
+                "audit_course_workspace.py",
+                "--course-dir",
+                str(mirror),
+                "--format",
+                "json",
+                check=False,
+            )
+            course = json.loads(audit.stdout)["courses"][0]
+            self.assertEqual(course["status"], "invalid")
+            codes = {item["code"] for item in course["issues"]}
+            self.assertIn("reference_mirror_local_state_mutated", codes)
+
+    def test_pointer_mirror_rejects_payload_and_resolves_canonical(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir) / ".ai-course-tutor"
+            canonical = self.make_ready_course(workspace, "pointer-course")
+            mirror = workspace / "courses" / "pointer-mirror"
+            mirror.mkdir(parents=True)
+            (mirror / "course.yml").write_text(
+                f'''workspace_schema_version: 2
+workspace_migration_status: "not_required"
+workspace_role: "reference_mirror"
+mirror_mode: "pointer_only"
+canonical_course_dir: "{canonical}"
+course:
+  course_instance_id: "pointer-course"
+''',
+                encoding="utf-8",
+            )
+            resolved = self.run_script(
+                "resolve_course_workspace.py",
+                "--course-dir",
+                str(mirror),
+                "--require-ready",
+                "--json",
+            )
+            self.assertEqual(
+                json.loads(resolved.stdout)["canonical_course_dir"], str(canonical.resolve())
+            )
+            payload = mirror / "assignments" / "unauthorized.md"
+            payload.parent.mkdir(parents=True)
+            payload.write_text("must not live in a pointer mirror", encoding="utf-8")
+            audit = self.run_script(
+                "audit_course_workspace.py",
+                "--course-dir",
+                str(mirror),
+                "--format",
+                "json",
+                check=False,
+            )
+            course = json.loads(audit.stdout)["courses"][0]
+            self.assertEqual(course["status"], "invalid")
+            codes = {item["code"] for item in course["issues"]}
+            self.assertIn("reference_mirror_payload_present", codes)
+
+    def test_contract_promotion_rejects_temporary_external_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir) / ".ai-course-tutor"
+            course_dir = self.make_ready_course(workspace, "contract-location-course")
+            contract = Path(temp_dir) / "staged-contract.json"
+            data = valid_contract(
+                point_id="week-02-point-01", exercise_set_id="external-set"
+            )
+            data["status"] = "draft"
+            contract.write_text(json.dumps(data), encoding="utf-8")
+            result = self.run_script(
+                "validate_exercise_contract.py",
+                "--contract",
+                str(contract),
+                "--blueprint",
+                str(active_blueprint_path(course_dir)),
+                "--progress",
+                "1/1",
+                "--promote",
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("inside the canonical course workspace", result.stderr)
 
     @unittest.skipUnless(find_spec("pymupdf"), "PyMuPDF is not installed")
     def test_pdf_crops_are_unique_and_protected_from_overwrite(self) -> None:

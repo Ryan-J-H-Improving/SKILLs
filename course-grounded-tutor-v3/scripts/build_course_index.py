@@ -33,8 +33,11 @@ def build_index(workspace: Path) -> Path:
             institution = fields.get("course.institution", "")
             teaching_profile = fields.get("teaching.teaching_profile", "")
             blueprint_status = fields.get("teaching.blueprint.status", "")
+            active_lesson = fields.get("teaching.blueprint.active_lesson_id", "")
+            blueprint_path = fields.get("teaching.blueprint.path", "")
             workspace_role = fields.get("workspace_role", WORKSPACE_ROLE_CANONICAL)
             canonical_course_dir = fields.get("canonical_course_dir", "")
+            mirror_mode = fields.get("mirror_mode", "")
             label_parts: list[str] = []
             for part in [code, title, year, term]:
                 if part and part not in label_parts:
@@ -50,12 +53,18 @@ def build_index(workspace: Path) -> Path:
                 lines.append(f"- Teaching profile: {teaching_profile}")
             if blueprint_status:
                 lines.append(f"- Blueprint status: {blueprint_status}")
+            if active_lesson:
+                lines.append(f"- Active lesson: `{active_lesson}`")
+            if blueprint_path:
+                lines.append(f"- Active blueprint: `{blueprint_path}`")
             if (
                 workspace_role == WORKSPACE_ROLE_REFERENCE_MIRROR
                 and canonical_course_dir
             ):
                 canonical_yml = Path(canonical_course_dir) / "course.yml"
                 lines.append("- Formal teaching: disabled in this mirror")
+                if mirror_mode:
+                    lines.append(f"- Mirror mode: `{mirror_mode}`")
                 lines.append(f"- Canonical course: `{canonical_course_dir}`")
                 lines.append(f"- Path: `{canonical_yml}`")
                 lines.append(f"- Mirror metadata: `courses/{course_id}/course.yml`")

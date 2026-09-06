@@ -17,6 +17,10 @@ from validate_teaching_blueprint import (
     point_field_records,
     validate_blueprint,
 )
+from migrate_lesson_blueprints import (
+    activate as activate_lesson_blueprints,
+    create_drafts as create_lesson_blueprint_drafts,
+)
 from workspace_common import (
     BLUEPRINT_VERSION,
     SKILL_VERSION,
@@ -25,6 +29,7 @@ from workspace_common import (
     atomic_write_text,
     file_sha256,
     set_yaml_scalar,
+    reference_mirror_write_error,
     yaml_scalar_paths,
 )
 
@@ -711,6 +716,8 @@ def activate_command(args: argparse.Namespace) -> int:
         "\\", "/"
     )
     atomic_write_text(paths["manifest"], json.dumps(manifest, ensure_ascii=False, indent=2))
+    create_lesson_blueprint_drafts(args.course_dir, dry_run=False)
+    activate_lesson_blueprints(args.course_dir, dry_run=False)
     print_report(report_payload(args.course_dir, [], "activate"), args.format)
     return 0
 
@@ -745,6 +752,10 @@ def main() -> int:
     activate.set_defaults(handler=activate_command)
 
     args = parser.parse_args()
+    if args.command in {"create-draft", "activate"}:
+        mirror_error = reference_mirror_write_error(args.course_dir)
+        if mirror_error:
+            parser.error("workspace migration is blocked: " + mirror_error)
     try:
         if args.command == "plan":
             payload = course_plan(args.course_dir)
