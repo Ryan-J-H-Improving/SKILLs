@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a V3.1 teaching blueprint before detailed tutoring begins."""
+"""Validate one lesson-scoped V3.1 teaching blueprint."""
 
 from __future__ import annotations
 
@@ -12,10 +12,15 @@ from pathlib import Path
 from workspace_common import (
     BLUEPRINT_VERSION,
     atomic_write_text,
+    find_course_dir,
     file_sha256,
+    lesson_id_from_point_id,
+    relative_course_path,
     reference_mirror_write_error,
     set_yaml_scalar,
+    yaml_scalar_paths,
 )
+from lesson_blueprints import DEFAULT_MANIFEST_PATH, register_lesson_blueprint
 
 
 POINT_RE = re.compile(r"^### Point\s+(\d+)/(\d+):\s+(.+?)\s*$", re.MULTILINE)
@@ -130,7 +135,10 @@ def get_point_binding(path: Path, point_id: str) -> dict[str, object] | None:
 
 
 def validate_blueprint(
-    path: Path, progress: str = "", require_ready: bool = True
+    path: Path,
+    progress: str = "",
+    require_ready: bool = True,
+    require_lesson_scope: bool = True,
 ) -> list[str]:
     errors: list[str] = []
     if not path.is_file():
@@ -165,7 +173,27 @@ def validate_blueprint(
     if total and len(records) != total:
         errors.append(f"Expected {total} point sections, found {len(records)}")
 
+    if require_lesson_scope and total:
+        legacy_numbers = {
+            int(match.group(1))
+            for match in re.finditer(r"\bPoints?\s+(\d+)\b", text)
+            if int(match.group(1)) > total
+        }
+        if legacy_numbers:
+            errors.append(
+                "Lesson blueprint contains legacy cumulative Point references above its "
+                f"local total {total}: "
+                + ", ".join(str(number) for number in sorted(legacy_numbers))
+                + "; use stable Point IDs instead"
+            )
+        if re.search(r"(?i)global blueprint positions|global denominator", text):
+            errors.append(
+                "Lesson blueprint must not declare a global progress denominator; "
+                "learner-facing progress is lesson-local"
+            )
+
     seen_point_ids: set[str] = set()
+    lesson_ids: set[str] = set()
     for index, (number, denominator, title, fields) in enumerate(records, start=1):
 
         if number != index:
@@ -194,6 +222,13 @@ def validate_blueprint(
             errors.append(f"Point {number} duplicates Point ID: {point_id}")
         if point_id:
             seen_point_ids.add(point_id)
+            lesson_id = lesson_id_from_point_id(point_id)
+            if not lesson_id:
+                errors.append(
+                    f"Point {number} Point ID must end in '-pNN' or '-point-NN' so its lesson scope is stable"
+                )
+            else:
+                lesson_ids.add(lesson_id)
 
         transcript_status = fields.get("Transcript status", "").lower()
         transcript_evidence = fields.get("Transcript evidence", "").lower()
@@ -277,6 +312,21 @@ def validate_blueprint(
             errors.append(
                 f"Point {number} exercise relationships lack demonstration mapping: "
                 + ", ".join(sorted(undemonstrated_ids))
+            )
+
+    if require_lesson_scope:
+        if len(lesson_ids) > 1:
+            errors.append(
+                "A teaching blueprint must contain exactly one lesson; found lesson IDs: "
+                + ", ".join(sorted(lesson_ids))
+            )
+        declared_scope = global_fields.get("Blueprint scope", "").strip().lower()
+        if declared_scope and declared_scope != "lesson":
+            errors.append("Blueprint scope must be lesson")
+        declared_lesson = global_fields.get("Lesson ID", "").strip()
+        if declared_lesson and lesson_ids and declared_lesson not in lesson_ids:
+            errors.append(
+                f"Lesson ID {declared_lesson!r} differs from point lesson {next(iter(lesson_ids))!r}"
             )
 
     validation_parts = text.split("## Three-Pass Validation", 1)
@@ -389,6 +439,11 @@ def main() -> int:
     parser.add_argument("--blueprint", required=True, type=Path)
     parser.add_argument("--progress", default="")
     parser.add_argument("--promote", action="store_true")
+    parser.add_argument(
+        "--activate",
+        action="store_true",
+        help="make the promoted lesson blueprint the course's active lesson",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--report", nargs="?", const="text", choices=["text", "json"], default=""
@@ -396,8 +451,11 @@ def main() -> int:
     args = parser.parse_args()
     if args.dry_run and not args.promote:
         parser.error("--dry-run is only valid with --promote")
+    if args.activate and not args.promote:
+        parser.error("--activate is only valid with --promote")
+    course_dir = find_course_dir(args.blueprint)
     if args.promote:
-        mirror_error = reference_mirror_write_error(args.blueprint.parent.parent)
+        mirror_error = reference_mirror_write_error(course_dir) if course_dir else ""
         if mirror_error:
             parser.error("blueprint promotion is blocked: " + mirror_error)
 
@@ -412,26 +470,68 @@ def main() -> int:
                 errors = validate_blueprint(args.blueprint, args.progress)
                 if not errors:
                     candidate_hash = file_sha256(args.blueprint)
-                    course_yml = args.blueprint.parent.parent / "course.yml"
-                    if course_yml.is_file():
+                    course_yml = course_dir / "course.yml" if course_dir else None
+                    if course_yml is not None and course_yml.is_file():
                         global_fields = parse_fields(
                             candidate.split("## Knowledge-Point Plan", 1)[0]
                         )
+                        records = point_field_records(candidate)
+                        lesson_ids = {
+                            lesson_id_from_point_id(fields.get("Point ID", ""))
+                            for _, _, _, fields in records
+                        } - {""}
+                        if len(lesson_ids) != 1:
+                            parser.error(
+                                "promoted blueprint must resolve to exactly one lesson ID"
+                            )
+                        lesson_id = next(iter(lesson_ids))
+                        metadata = yaml_scalar_paths(course_yml)
+                        declared_path = metadata.get(
+                            "teaching.blueprint.path", "indexes/teaching-blueprint.md"
+                        )
+                        declared = Path(declared_path)
+                        if not declared.is_absolute():
+                            declared = course_dir / declared
+                        activate = args.activate or declared.resolve() == args.blueprint.resolve()
+                        register_lesson_blueprint(
+                            course_dir,
+                            args.blueprint,
+                            lesson_id,
+                            len(records),
+                            global_fields.get("Source fingerprint", ""),
+                            activate=activate,
+                        )
                         course_text = course_yml.read_text(encoding="utf-8")
-                        course_text = set_yaml_scalar(
-                            course_text,
-                            "teaching.blueprint.version",
-                            f'"{BLUEPRINT_VERSION}"',
-                        )
-                        course_text = set_yaml_scalar(
-                            course_text, "teaching.blueprint.status", '"ready"'
-                        )
-                        course_text = set_yaml_scalar(
-                            course_text,
-                            "teaching.blueprint.source_fingerprint",
-                            f'"{global_fields.get("Source fingerprint", "")}"',
-                        )
-                        atomic_write_text(course_yml, course_text)
+                        if activate:
+                            course_text = set_yaml_scalar(
+                                course_text,
+                                "teaching.blueprint.path",
+                                f'"{relative_course_path(course_dir, args.blueprint)}"',
+                            )
+                            course_text = set_yaml_scalar(
+                                course_text,
+                                "teaching.blueprint.active_lesson_id",
+                                f'"{lesson_id}"',
+                            )
+                            course_text = set_yaml_scalar(
+                                course_text,
+                                "teaching.blueprint.manifest_path",
+                                f'"{DEFAULT_MANIFEST_PATH}"',
+                            )
+                            course_text = set_yaml_scalar(
+                                course_text,
+                                "teaching.blueprint.version",
+                                f'"{BLUEPRINT_VERSION}"',
+                            )
+                            course_text = set_yaml_scalar(
+                                course_text, "teaching.blueprint.status", '"ready"'
+                            )
+                            course_text = set_yaml_scalar(
+                                course_text,
+                                "teaching.blueprint.source_fingerprint",
+                                f'"{global_fields.get("Source fingerprint", "")}"',
+                            )
+                            atomic_write_text(course_yml, course_text)
     else:
         errors = validate_blueprint(args.blueprint, args.progress)
         if not errors:

@@ -7,7 +7,7 @@
   "lesson_progress": "<current/total>",
   "point_id": "<stable semantic blueprint Point ID>",
   "point_status": "teaching",
-  "blueprint_path": "indexes/teaching-blueprint.md",
+  "blueprint_path": "indexes/blueprints/lesson-01.md",
   "blueprint_status": "ready",
   "source_fingerprint": "<must match the validated blueprint>",
   "transcript_gate": "passed",

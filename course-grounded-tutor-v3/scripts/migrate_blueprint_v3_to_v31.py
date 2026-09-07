@@ -13,6 +13,7 @@ from validate_teaching_blueprint import (
     FIELD_RE,
     POINT_RE,
     parse_fields,
+    point_field_records,
     validate_blueprint,
 )
 from workspace_common import (
@@ -20,7 +21,10 @@ from workspace_common import (
     SKILL_VERSION,
     WORKSPACE_SCHEMA_VERSION,
     atomic_write_text,
+    lesson_id_from_point_id,
+    relative_course_path,
     set_yaml_scalar,
+    reference_mirror_write_error,
 )
 
 
@@ -190,6 +194,26 @@ def activate_command(args: argparse.Namespace) -> int:
     course_text = set_yaml_scalar(
         course_text, "teaching.blueprint.version", f'"{BLUEPRINT_VERSION}"'
     )
+    point_lessons = {
+        lesson_id_from_point_id(fields.get("Point ID", ""))
+        for _, _, _, fields in point_field_records(activated_text)
+    } - {""}
+    if len(point_lessons) != 1:
+        raise ValueError("activated blueprint must contain exactly one lesson")
+    lesson_id = next(iter(point_lessons))
+    course_text = set_yaml_scalar(
+        course_text,
+        "teaching.blueprint.path",
+        f'"{relative_course_path(args.course_dir, official)}"',
+    )
+    course_text = set_yaml_scalar(
+        course_text, "teaching.blueprint.active_lesson_id", f'"{lesson_id}"'
+    )
+    course_text = set_yaml_scalar(
+        course_text,
+        "teaching.blueprint.manifest_path",
+        '"indexes/blueprints/manifest.json"',
+    )
     course_text = set_yaml_scalar(course_text, "teaching.blueprint.status", '"ready"')
     global_fields = parse_fields(activated_text.split("## Knowledge-Point Plan", 1)[0])
     course_text = set_yaml_scalar(
@@ -223,6 +247,10 @@ def main() -> int:
     activate.add_argument("--draft", type=Path)
     activate.set_defaults(handler=activate_command)
     args = parser.parse_args()
+    if args.command in {"create-draft", "activate"}:
+        mirror_error = reference_mirror_write_error(args.course_dir)
+        if mirror_error:
+            parser.error("blueprint migration is blocked: " + mirror_error)
     try:
         return args.handler(args)
     except ValueError as error:

@@ -11,13 +11,13 @@
 <!-- course-grounded-tutor:current-state:start -->
 ## Current Session Snapshot
 
-- Workspace schema version: 1
+- Workspace schema version: 2
 - Current lesson:
 - Lesson progress:
 - Point ID:
 - Current point:
 - Point status:
-- Blueprint path: indexes/teaching-blueprint.md
+- Blueprint path: indexes/blueprints/lesson-01.md
 - Blueprint status:
 - Blueprint SHA256:
 - Source fingerprint:

@@ -1,18 +1,18 @@
 ---
 name: course-grounded-tutor-v3
-description: Teach and review a course from lecture PDFs, transcripts, school questions, exams, datasets, and personalized learning memory. Use when an agent should identify the course from supplied materials, preserve locked language and course notation, follow a validated whole-scope teaching plan, prevent questions from testing untaught content, use verified figures, and maintain cross-chat continuity.
+description: Teach and review a course from lecture PDFs, transcripts, school questions, exams, datasets, and personalized learning memory. Use when an agent should identify the course from supplied materials, preserve locked language and course notation, follow a course roadmap plus validated lesson blueprints, prevent questions from testing untaught content, use verified figures, and maintain cross-chat continuity.
 license: MIT
 metadata:
-  version: "3.2.3"
+  version: "3.3.1"
 ---
 
-# Course Grounded Tutor V3.2.3
+# Course Grounded Tutor V3.3.1
 
 ## Purpose
 
 Tutor from registered course materials rather than generic memory. Preserve the locked reply language, note language, course notation, teaching structure, source priorities, and personalized learning history across chats and model changes.
 
-Teaching quality must not depend on a model improvising the lesson turn by turn. Before detailed teaching, build a durable whole-scope teaching blueprint from all currently available materials, validate its source use and dependency order, and use it as the canonical lesson plan.
+Teaching quality must not depend on a model improvising the lesson turn by turn. Before detailed teaching, analyze all currently available materials into a cumulative course map and dependency roadmap. Then build one validated blueprint per lecture, tutorial, lab, or other coherent lesson. Only the active lesson blueprint controls its own point order, exercises, and numeric denominator.
 
 ## Required Workspace
 
@@ -30,19 +30,21 @@ Use a project-local workspace by default:
       extracted/
       indexes/
         source-register.md
-        teaching-blueprint.md
+        blueprints/
+          manifest.json
+          <lesson-id>.md
       memory/
       notes/
       exam-review/
 ```
 
-If no workspace exists, create it from the templates. Never place private course materials inside the distributable skill folder. Each course instance has exactly one writable `canonical` workspace. Before initializing a new course directory, search every discovered `.ai-course-tutor` index and pass each external root to `scripts/init_course_workspace.py --known-workspace`; use `--confirm-no-known-canonical` only after that search finds no existing canonical. A duplicate retained for discovery or recovery must be marked `reference_mirror` with an absolute `canonical_course_dir`; never teach from or write progress to a mirror. Mirror sync hashes describe only the named blueprint and learning-state snapshots, not the entire copied tree. Update a recorded hash only after copying that exact canonical file into the mirror and verifying the bytes.
+If no workspace exists, create it from the templates. Never place private course materials inside the distributable skill folder. Each course instance has exactly one writable `canonical` workspace. Before initializing a new course directory, search every discovered `.ai-course-tutor` index and pass each external root to `scripts/init_course_workspace.py --known-workspace`; use `--confirm-no-known-canonical` only after that search finds no existing canonical. A duplicate retained for discovery must be a `pointer_only` `reference_mirror` with an absolute `canonical_course_dir`; it should contain only `course.yml` and optional `MIRROR.md`. A legacy snapshot mirror is read-only and must retain sync hashes and time until converted. Never teach from or write any course-owned output to a mirror, including notes, figures, contracts, assignments, plans, source registers, extracted assets, or progress.
 
-Before formal teaching, run `scripts/audit_course_workspace.py` against the matched course. A `ready` result permits blueprint-controlled teaching. A `reference_mirror` result means follow its canonical path and audit that directory before teaching; the mirror itself permits only limited clarification. A `migration_required` or `invalid` result also permits only limited clarification of a question the user explicitly asked. None of these non-ready states permit planned teaching, exercises, scoring, mastery evidence, or progress advancement.
+Before formal teaching, run `scripts/resolve_course_workspace.py --course-dir <discovered-course> --require-ready`, then use only the returned canonical path. Repeat resolution immediately before every durable write; a chat-start audit is not a lifetime authorization because a long-running chat can outlive a migration. Run `scripts/audit_course_workspace.py` against the resolved course. A `ready` result permits blueprint-controlled teaching. A `reference_mirror`, `migration_required`, or `invalid` result permits only limited clarification of a question the user explicitly asked. None permits planned teaching, exercises, scoring, mastery evidence, or progress advancement.
 
 ## Reference Routing
 
-Load only the references needed for the current task. Reading the active validated `indexes/teaching-blueprint.md` is different from loading the protocol used to build or repair one:
+Load only the references needed for the current task. Read the active path from `course.yml`, verify it against `indexes/blueprints/manifest.json`, and then load that lesson blueprint. This is different from loading the protocol used to build or repair one:
 
 - `references/teaching-blueprint-protocol.md`: read only when creating, migrating, repairing, or revalidating a blueprint, when materials change, when lesson order or point count changes, or after a tutor coverage failure.
 - `references/learning-pacing-protocol.md`: read before teaching, advancing, remediating, or responding to fatigue.
@@ -69,16 +71,16 @@ Load only the references needed for the current task. Reading the active validat
 1. Identify the course from uploaded materials without requiring the user to name it. Use filenames, metadata, headers, course codes, titles, lecturers, terms, transcript references, exam headers, and terminology fingerprints. When a consequential decision remains uncertain, present 2-3 clear options instead of guessing.
 2. Load or create the course instance and register every source. Resolve duplicate workspaces before reading progress: use the indexed canonical path, never whichever copy is nearest. When more than one workspace root is known, run one multi-root audit before initialization or teaching; duplicate canonical IDs block both locations until the user selects the canonical. Treat different terms of the same course as related instances, not automatically interchangeable sources.
 3. Establish and lock reply language, note language, course notation source, and the subject-format profile. A temporary change in the user's message language changes none of these contracts.
-4. At the start of a teaching chat, audit the matched course, then load `indexes/teaching-blueprint.md`, `memory/learning-state.md`, and the course map. Never trust a stored or model-supplied `ready` string by itself. If the audit returns `reference_mirror`, follow `canonical_course_dir` and audit it. If the canonical audit is not `ready`, stop formal teaching and enter limited clarification while creating or repairing a sidecar draft. Promote a complete draft with `scripts/validate_teaching_blueprint.py --promote`; do not overwrite a legacy blueprint before the promoted replacement passes validation. Note-health warnings are read-only maintenance signals and do not by themselves block formal teaching; surface a compact warning and repair notes at a safe boundary rather than interrupting the current explanation.
-5. Build the blueprint by inspecting the complete available slides, matching transcript passages, relevant assessments, and existing memory. Simulate the novice learning path, establish a coherent point order, identify all prerequisites and new terms, map teacher transitions, plan formula construction and visuals, and define one exercise set for each point. If future course materials are unavailable, plan the available scope and mark the missing scope explicitly; never invent it.
-6. Display a compact progress snapshot with numeric teaching position such as `2/10`, then teach the next point from the validated blueprint. Show evidence-backed `practiced` and `mastered` counts separately and include note health only when the audit reports lag or unresolved delivery warnings. Never describe the position counter as completion or mastery; a resumed `38/38` position may still have a `not_started` current point and zero V3.1 mastery evidence. Do not expose lengthy planning internals unless requested.
+4. At the start of a teaching chat, resolve and audit the matched canonical course, then load its blueprint manifest, active lesson blueprint, `memory/learning-state.md`, and cumulative course map. Never trust a stored or model-supplied `ready` string by itself. If resolution or audit is not `ready`, stop formal teaching and enter limited clarification while creating or repairing a sidecar draft. Promote a complete lesson draft with `scripts/validate_teaching_blueprint.py --promote --activate`; do not overwrite a legacy blueprint before the replacement passes validation. Note-health warnings are maintenance signals and do not by themselves block formal teaching.
+5. On the first course teaching chat, inspect all available slides, matching transcript passages, relevant assessments, and existing memory. Simulate the full novice path and record the cross-lesson order, prerequisites, terminology, and source coverage in the cumulative course map. For each supplied lesson, create or register a separate blueprint containing only that lesson's coherent knowledge points. Never append a new week to the previous week's active blueprint. If future materials are unavailable, mark that scope explicitly; never invent it.
+6. Display a compact current-lesson snapshot such as `Week 5 - 2/16`, then teach the next point from the active lesson blueprint. Show course-level supplied/outlined lesson coverage separately when useful, and show evidence-backed `practiced` and `mastered` counts separately. Never use a cumulative point counter such as `40/54` as the lesson denominator, and never describe position as completion or mastery. Inside a lesson blueprint, refer to cross-lesson dependencies by stable Point ID (for example `week-04-p11`), never by a legacy cumulative number such as `Point 38`.
 7. Ground substantial claims in registered course sources. Slides define official notation and formal content; transcripts supply the lecturer's explanation sequence and emphasis; exams and school questions supply assessment evidence. Restore the transcript bridge when slides are terse. If both sources jump, add only a clearly labeled minimal `AI-added bridge`.
 8. Teach one coherent knowledge point at a time using the locked subject profile. Explain the problem it solves, connection to the previous point, course-core terms, relationships, notation, worked reasoning, and validated visual when visually dependent.
 9. For formulas, construct meaning before compression into notation: identify the objects, fix what varies and what stays fixed, establish relationships, explain every operation or transformation in dependency order, then show the complete course formula and demonstrate it. A symbol list alone does not pass this gate.
 10. After the point is fully taught, create exactly one draft post-point exercise contract under `memory/exercise-contracts/`. Default to three atomic answer actions; use four or five only when the point contains several genuinely examinable operations. Bind the contract to the blueprint's stable Point ID and source fingerprint, and bind every action to one eligible blueprint relationship, one explanation locator, one worked-example locator, and one explicit rubric criterion. Promote it with `scripts/validate_exercise_contract.py --promote`, then run `scripts/render_exercise_contract.py` with the blueprint path and numeric progress and display the renderer output verbatim. Do not create separate readiness-check and independent-practice stages or add requests outside the rendered contract.
 11. Mark the user's answer diagnostically in learning mode. If every required action is correct and the user expresses no unresolved uncertainty, update progress and begin the next point immediately in the same response. Do not ask whether to continue. A message such as `continue`, `okay`, or `no problem` is a pacing signal only and is never mastery evidence.
 12. If an answer reveals an error, first audit tutor coverage. Withdraw any inadequately taught item as `Not counted - tutor coverage gap`. Otherwise give one concise repair and one new targeted item that tests the failed relationship without repeating the original question. If the error remains, ask for the user's current mental model, correct it, and pause automatic advancement until the relationship is demonstrated.
-13. Update durable state after a point completes, a real misconception changes, the blueprint changes, or the session stops. Prefer `scripts/update_learning_state.py --state-json <file>` using `assets/state-update.json.template`; the script rejects unknown fields, reopens the promoted blueprint even on non-advancing teaching updates, records its SHA-256, and writes atomically. Do not narrate routine file updates or rewrite multiple memory files after every micro-clarification.
+13. Update durable state after a point completes, a real misconception changes, the active lesson blueprint changes, or the session stops. Immediately before writing, rerun `scripts/resolve_course_workspace.py --course-dir <current-path> --require-ready` and use the returned path. Prefer `scripts/update_learning_state.py --state-json <file>` using `assets/state-update.json.template`; the script rejects unknown fields, reopens the active registered blueprint even on non-advancing updates, rejects contracts outside the canonical course, records hashes, and writes atomically.
 14. In exam-review mode, map exam topics and school style first, then use one exam-style set per reviewed topic at source-matched complexity. Mark strictly and follow the answer-release rule.
 15. Stop immediately when the user signals fatigue, anger, pause, or session completion. Do not append another question, recap quiz, or continuation prompt. Preserve the last stable point and the exact blocking issue for later recovery.
 
@@ -89,7 +91,7 @@ Detailed teaching and progress advancement are prohibited unless all relevant ga
 1. **Transcript evidence gate:** the blueprint records an exact usable transcript locator or explicitly records that no matching transcript was supplied. When a transcript exists, a generic citation such as `main speaker block` is insufficient if the passage can be segmented more precisely. Record the teacher's transition and explanation order, not merely the topic name.
 2. **Formula construction gate:** every object, symbol, relationship, operator, transformation, fixed quantity, varying quantity, unit, and normalization role needed for the planned exercise has been explained in dependency order and demonstrated. Listing symbols is insufficient.
 3. **Exercise-contract and mastery gate:** the immutable contract proves every atomic action was explicitly explained and demonstrated, the final prompt has one matching criterion, and the single exercise set actually tests the relationships claimed by the point. A point-level status or self-declared `coverage-gate passed` is insufficient. Do not infer full understanding from recognition of one consequence, answer-pattern cues, reading an explanation, or a pacing signal.
-4. **Index consistency gate:** the teaching blueprint, source register, course map, numeric progress denominator, learning state, current source set, and canonical workspace role agree. If segmentation or canonical location changes, update and validate these records before continuing. A reference mirror never satisfies this gate for formal teaching.
+4. **Index consistency gate:** the active lesson blueprint, blueprint manifest, source register, cumulative course map, lesson-local progress denominator, learning state, current source set, and canonical workspace role agree. If segmentation or canonical location changes, update and validate these records before continuing. A reference mirror never satisfies this gate for formal teaching.
 
 ## Validation Boundary
 
@@ -115,6 +117,9 @@ The bundled scripts enforce structure, status transitions, stable identifiers, c
 
 - Do not change `reply_language` or `note_language` without an explicit durable user request.
 - Do not teach from an unvalidated or stale blueprint when sufficient source material exists to build one.
+- Do not combine several lessons into one active blueprint. Preserve course-wide sequencing in the course map and keep each lesson's point denominator local.
+- Do not rely on an earlier chat-start audit before writing. Resolve the canonical course again immediately before every course-owned file update.
+- Do not write any course-owned file to a reference mirror, even when the file is not named by a gate script.
 - Do not treat a transcript as used merely because it is registered or cited. Extract and preserve its teaching transition and explanation sequence.
 - Do not begin a point with an unexplained formula, dense table, term list, plot, or formal definition. Establish why it appears and what problem it resolves.
 - Do not show a transformed multi-part formula before its objects and operations have been constructed in meaning.
@@ -143,6 +148,8 @@ The bundled scripts enforce structure, status transitions, stable identifiers, c
 - `scripts/init_course_workspace.py`: create the project-local course workspace only after scanning known external workspaces or receiving explicit no-known-canonical confirmation.
 - `scripts/build_course_index.py`: rebuild `.ai-course-tutor/index.md` from course metadata.
 - `scripts/audit_course_workspace.py`: audit one course or multiple workspace roots, report mirrors separately, invalidate duplicate canonical course IDs, flag canonicals stored inside distributable skill directories, and report read-only note health without modifying course data.
+- `scripts/resolve_course_workspace.py`: resolve a discovered course or mirror to the canonical directory and optionally require a ready audit before any durable write.
+- `scripts/migrate_lesson_blueprints.py`: plan, draft, dry-run, back up, split a cumulative blueprint into lesson files, register hashes, localize progress, and rebind active-lesson contracts.
 - `scripts/migrate_blueprint_v3_to_v31.py`: create a sidecar V3.1 draft and activate it only after promotion, preserving a timestamped legacy backup.
 - `scripts/migrate_legacy_workspace.py`: plan, draft, validate, dry-run, back up, and activate legacy `sources.md`, course metadata, and handwritten learning state without promoting historical mastery claims.
 - `scripts/validate_teaching_blueprint.py`: validate a blueprint, produce text or JSON repair reports, and promote a valid draft atomically with `--promote`.

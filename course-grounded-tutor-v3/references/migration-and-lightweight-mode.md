@@ -2,7 +2,7 @@
 
 ## Workspace States
 
-Run `scripts/audit_course_workspace.py` before formal teaching.
+Run `scripts/resolve_course_workspace.py --course-dir <discovered-course> --require-ready` and `scripts/audit_course_workspace.py` before formal teaching, then resolve again before every durable write.
 
 - `ready`: the workspace schema, promoted blueprint, current-state hash, and required directories agree. Formal teaching may proceed.
 - `reference_mirror`: the directory is a read-only discovery/recovery copy. Follow `canonical_course_dir` and audit it; only the canonical workspace can teach or record evidence.
@@ -21,7 +21,20 @@ This is a narrow response to a local question the user explicitly asked, such as
 
 When uncertain whether a request is local clarification or formal teaching, preserve the user's question, repair the workspace first, and do not advance.
 
-Reference mirrors may validate a limited clarification, but state updates, blueprint promotion, and exercise-contract promotion are mechanically blocked. Do not repair or migrate a mirror in place; work in its canonical directory or explicitly change the canonical assignment first.
+Reference mirrors may validate a limited clarification, but all course-owned writes are forbidden. Bundled text writers, figure extraction, blueprint promotion, and contract promotion enforce this mechanically; the audit also detects dirty snapshot mirrors and payload in pointer-only mirrors. Do not repair or migrate a mirror in place. Recover divergent content into the canonical through an isolated merge and preserve a fingerprinted backup.
+
+## Lesson Blueprint Scope Migration
+
+Workspace schema 2 registers one blueprint per lesson and uses a lesson-local progress denominator. A cumulative V3.1 blueprint remains a historical source but cannot remain active.
+
+```bash
+python scripts/migrate_lesson_blueprints.py plan --course-dir <course-dir>
+python scripts/migrate_lesson_blueprints.py create-draft --course-dir <course-dir>
+python scripts/migrate_lesson_blueprints.py activate --course-dir <course-dir> --dry-run
+python scripts/migrate_lesson_blueprints.py activate --course-dir <course-dir>
+```
+
+Activation verifies the source hash, creates timestamped backups, preserves the old blueprint under `indexes/blueprints/legacy/`, registers each lesson hash, changes the current counter to that lesson's position/total, and rebinds contracts in the active contract directory. Do not delete historical contracts or their legacy blueprint anchor.
 
 ## Legacy Blueprint Migration
 

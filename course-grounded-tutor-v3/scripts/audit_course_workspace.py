@@ -6,18 +6,23 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote
 
 from exercise_contract import validate_blueprint_binding, validate_contract_file
 from validate_teaching_blueprint import validate_blueprint
+from lesson_blueprints import load_manifest, validate_manifest
 from workspace_common import (
     BLUEPRINT_VERSION,
+    MIRROR_MODE_POINTER_ONLY,
+    MIRROR_MODE_SNAPSHOT,
     SKILL_VERSION,
     WORKSPACE_SCHEMA_VERSION,
     WORKSPACE_ROLE_CANONICAL,
     WORKSPACE_ROLE_REFERENCE_MIRROR,
     WORKSPACE_ROLES,
+    active_blueprint_path,
     file_sha256,
     yaml_scalar_paths,
 )
@@ -48,6 +53,101 @@ FIGURE_DELIVERY_STATUSES = {"embedded", "pending_insertion", "reference_only", "
 
 def issue(code: str, message: str, severity: str = "error") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def _mirror_local_integrity_issues(
+    course_dir: Path, metadata: dict[str, str], issues: list[dict[str, str]]
+) -> None:
+    mode = metadata.get("mirror_mode", MIRROR_MODE_SNAPSHOT) or MIRROR_MODE_SNAPSHOT
+    if mode not in {MIRROR_MODE_POINTER_ONLY, MIRROR_MODE_SNAPSHOT}:
+        issues.append(
+            issue(
+                "reference_mirror_mode_invalid",
+                f"mirror_mode must be {MIRROR_MODE_POINTER_ONLY!r} or {MIRROR_MODE_SNAPSHOT!r}",
+            )
+        )
+        return
+
+    files = [path for path in course_dir.rglob("*") if path.is_file()]
+    if mode == MIRROR_MODE_POINTER_ONLY:
+        allowed = {"course.yml", "MIRROR.md"}
+        payload = sorted(
+            path.relative_to(course_dir).as_posix()
+            for path in files
+            if path.relative_to(course_dir).as_posix() not in allowed
+            and "migration" not in path.relative_to(course_dir).parts
+        )
+        if payload:
+            issues.append(
+                issue(
+                    "reference_mirror_payload_present",
+                    "pointer-only mirror contains course-owned payload files: "
+                    + _short_list(payload),
+                )
+            )
+        return
+
+    recorded_blueprint = metadata.get("mirror_canonical_blueprint_sha256", "")
+    try:
+        local_blueprint = active_blueprint_path(course_dir)
+    except (OSError, ValueError):
+        local_blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+    if local_blueprint.is_file() and recorded_blueprint:
+        if file_sha256(local_blueprint) != recorded_blueprint:
+            issues.append(
+                issue(
+                    "reference_mirror_local_blueprint_mutated",
+                    "mirror-local blueprint differs from the canonical hash recorded at sync",
+                )
+            )
+    local_state = course_dir / "memory" / "learning-state.md"
+    recorded_state = metadata.get("mirror_canonical_learning_state_sha256", "")
+    if local_state.is_file() and recorded_state:
+        if file_sha256(local_state) != recorded_state:
+            issues.append(
+                issue(
+                    "reference_mirror_local_state_mutated",
+                    "mirror-local learning state differs from the canonical hash recorded at sync",
+                )
+            )
+
+    raw_sync = metadata.get("mirror_last_synced_at", "").strip()
+    if not raw_sync:
+        issues.append(
+            issue(
+                "mirror_sync_metadata_missing",
+                "snapshot mirror does not record mirror_last_synced_at",
+                severity="warning",
+            )
+        )
+        return
+    try:
+        synced = datetime.fromisoformat(raw_sync.replace("Z", "+00:00"))
+        if synced.tzinfo is None:
+            synced = synced.replace(tzinfo=timezone.utc)
+        threshold = synced.timestamp() + 2
+    except ValueError:
+        issues.append(issue("mirror_sync_time_invalid", f"invalid mirror sync time: {raw_sync}"))
+        return
+    changed = []
+    for path in files:
+        relative = path.relative_to(course_dir)
+        if relative.as_posix() == "course.yml" or relative.parts[0] in {
+            "migration",
+            "tmp",
+            "__pycache__",
+        }:
+            continue
+        if path.stat().st_mtime > threshold:
+            changed.append(relative.as_posix())
+    if changed:
+        issues.append(
+            issue(
+                "reference_mirror_files_changed_after_sync",
+                "mirror contains course-owned files modified after its recorded sync: "
+                + _short_list(sorted(changed)),
+            )
+        )
 
 
 def _short_list(values: list[str], limit: int = 5) -> str:
@@ -558,6 +658,7 @@ def audit_course(course_dir: Path) -> dict[str, object]:
                 severity="warning",
             )
         )
+        _mirror_local_integrity_issues(course_dir, metadata, issues)
         canonical_raw = metadata.get("canonical_course_dir", "").strip()
         canonical_blueprint_hash = ""
         canonical_blueprint_errors: list[str] = []
@@ -623,9 +724,7 @@ def audit_course(course_dir: Path) -> dict[str, object]:
                                 "canonical_course_dir must point to a workspace that passes a full ready audit",
                             )
                         )
-                    canonical_blueprint = (
-                        canonical_dir / "indexes" / "teaching-blueprint.md"
-                    )
+                    canonical_blueprint = active_blueprint_path(canonical_dir)
                     if not canonical_blueprint.is_file():
                         issues.append(
                             issue(
@@ -730,7 +829,17 @@ def audit_course(course_dir: Path) -> dict[str, object]:
         else:
             issues.append(issue("source_register_missing", "source register is missing"))
 
-    blueprint = course_dir / "indexes" / "teaching-blueprint.md"
+    try:
+        blueprint = active_blueprint_path(course_dir)
+        blueprint.relative_to(course_dir.resolve())
+    except ValueError:
+        blueprint = course_dir / "indexes" / "__invalid_blueprint_path__"
+        issues.append(
+            issue(
+                "blueprint_path_outside_course",
+                "teaching.blueprint.path must stay inside the canonical course workspace",
+            )
+        )
     blueprint_errors: list[str] = []
     blueprint_hash = ""
     if not blueprint.is_file():
@@ -751,6 +860,32 @@ def audit_course(course_dir: Path) -> dict[str, object]:
             )
         else:
             blueprint_hash = file_sha256(blueprint)
+
+    manifest_errors: list[str] = []
+    if schema_version == WORKSPACE_SCHEMA_VERSION:
+        manifest_errors = validate_manifest(course_dir)
+        if manifest_errors:
+            issues.append(
+                issue(
+                    "lesson_blueprint_manifest_invalid",
+                    f"lesson blueprint manifest failed {len(manifest_errors)} checks: "
+                    + _short_list(manifest_errors),
+                )
+            )
+        else:
+            manifest, _ = load_manifest(course_dir)
+            for entry in manifest.get("lessons", []):
+                if not isinstance(entry, dict):
+                    continue
+                lesson_path = course_dir / str(entry.get("path", ""))
+                lesson_errors = validate_blueprint(lesson_path)
+                if lesson_errors:
+                    issues.append(
+                        issue(
+                            "registered_lesson_blueprint_invalid",
+                            f"registered lesson {entry.get('lesson_id', '')!r} failed {len(lesson_errors)} validation checks",
+                        )
+                    )
 
     declared_version = metadata.get("teaching.blueprint.version", "")
     if declared_version and declared_version != BLUEPRINT_VERSION:
@@ -873,6 +1008,9 @@ def audit_course(course_dir: Path) -> dict[str, object]:
         "managed_state_field_missing",
         "state_schema_mismatch",
         "state_blueprint_hash_stale",
+        "lesson_blueprint_manifest_invalid",
+        "registered_lesson_blueprint_invalid",
+        "blueprint_path_outside_course",
         "contract_directory_missing",
     }
     has_migration_issue = any(item["code"] in migration_codes for item in issues)

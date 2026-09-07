@@ -2,26 +2,27 @@
 
 ## Purpose
 
-Prevent teaching quality from depending on ad hoc reasoning in one chat or one model. The blueprint is a user-readable, durable plan for the full currently available teaching scope. It records source evidence, teacher transitions, dependency order, formula construction, visual needs, question coverage, and known learner risks before detailed teaching begins.
+Prevent teaching quality from depending on ad hoc reasoning in one chat or one model. The course map holds the cumulative cross-lesson roadmap. Each registered lesson blueprint is a user-readable, durable plan for exactly one lecture, tutorial, lab, or other coherent lesson and records source evidence, transitions, dependencies, formulas, visuals, question coverage, and learner risks.
 
-Use `indexes/teaching-blueprint.md` as the canonical source for lesson order and knowledge-point totals. `notes/course-map.md` remains the learner-facing concept locator; `memory/learning-state.md` records current execution state.
+Use `indexes/blueprints/manifest.json` as the machine registry, the `course.yml` active blueprint path as the current teaching authority, `notes/course-map.md` as the cumulative learner-facing roadmap, and `memory/learning-state.md` as current execution state. Point totals are lesson-local.
 
 ## Start-Of-Chat Preflight
 
 At the start or resumption of every teaching chat:
 
-1. Identify the course from materials and load `course.yml`.
-2. Read `indexes/source-register.md`, `indexes/teaching-blueprint.md`, `memory/learning-state.md`, `notes/course-map.md`, and active weak points.
+1. Identify the course, run `scripts/resolve_course_workspace.py --course-dir <discovered-course> --require-ready`, and use only the returned canonical path.
+2. Read `indexes/source-register.md`, `indexes/blueprints/manifest.json`, the active lesson blueprint declared in `course.yml`, `memory/learning-state.md`, `notes/course-map.md`, and active weak points.
 3. Compare the blueprint source fingerprint and scope with registered materials.
-4. Compare the blueprint point total and order with the course map and current progress denominator.
+4. Compare the active lesson's point total and order with the lesson-local progress denominator. Compare lesson presence and prerequisites with the cumulative course map.
 5. If all records agree and the blueprint status is `ready`, load the next point. Do not recompute a valid plan merely because the chat or model changed.
-6. If the blueprint is absent, stale, incomplete, or inconsistent, do not start formal teaching. Enter limited clarification, build or repair a draft first, and promote it with `scripts/validate_teaching_blueprint.py --promote`.
+6. If the manifest or active blueprint is absent, stale, cumulative, incomplete, or inconsistent, do not start formal teaching. Enter limited clarification, build or repair one lesson draft, and promote it with `scripts/validate_teaching_blueprint.py --promote --activate`.
+7. Repeat canonical resolution immediately before every durable course write. A chat-start audit becomes stale if the workspace is migrated while the chat remains open.
 
 The user does not need to request this analysis. Keep the user-facing preflight summary compact; the detailed record belongs in the blueprint.
 
 ## Whole-Scope Analysis
 
-Analyze every currently available lecture or lesson before teaching the first point. When only part of a course has been supplied, plan that complete available scope and mark future material as unavailable. Never fabricate an unseen course structure.
+Analyze every currently available lecture or lesson before teaching the first point. Record the overall sequence, prerequisites, and supplied/missing scope in the course map. Then create one blueprint file per supplied lesson; never append a new lesson's points to the previous active file. When only part of a course has been supplied, mark future material as unavailable and never fabricate it.
 
 For each source set:
 
@@ -62,7 +63,7 @@ These audits are separate from the three independent image-validation passes.
 
 ## Required Point Record
 
-Each point in `indexes/teaching-blueprint.md` must record:
+Each point in one registered lesson blueprint under `indexes/blueprints/` must record:
 
 - Point number, stable title, and a stable `Point ID` such as `week-03-point-02`. Do not use the mutable progress fraction as the identifier.
 - Previous dependency and the last stable concept it builds on.
@@ -92,17 +93,21 @@ Keep `Blueprint status: draft` while constructing or repairing a plan. Use `--re
 
 ```bash
 python scripts/validate_teaching_blueprint.py \
-  --blueprint <course-dir>/indexes/teaching-blueprint.md \
+  --blueprint <course-dir>/indexes/blueprints/<lesson-id>.md \
   --promote --dry-run --report text
 
 python scripts/validate_teaching_blueprint.py \
-  --blueprint <course-dir>/indexes/teaching-blueprint.md \
-  --promote --report text
+  --blueprint <course-dir>/indexes/blueprints/<lesson-id>.md \
+  --promote --activate --report text
 ```
 
-Promotion changes draft to ready only after content validation passes, writes atomically through a same-directory temporary file, and synchronizes matching `course.yml` blueprint metadata when present. Do not hand-edit `ready` as a substitute for validation. Workspace auditing reruns the validator, so a self-declared but invalid status remains detectable.
+Promotion changes draft to ready only after content validation passes, writes atomically through a same-directory temporary file, registers the file and hash, and synchronizes `course.yml` only when it is already active or `--activate` is supplied. Do not hand-edit `ready` or the manifest as a substitute for validation. Workspace auditing reopens every registered blueprint.
 
 For a legacy V3 blueprint, use `scripts/migrate_blueprint_v3_to_v31.py create-draft` to create `teaching-blueprint.v31-draft.md`. Complete and promote the sidecar before `activate` replaces the official path and creates a timestamped backup.
+
+For a V3.1 cumulative or unregistered blueprint, use `scripts/migrate_lesson_blueprints.py plan`, then `create-draft`, `activate --dry-run`, and `activate`. It preserves the source as a legacy hash anchor, splits by stable Point ID prefix, changes progress to the active lesson's local denominator, rewrites old cumulative Point references to stable Point IDs, and rebinds only active-lesson contracts.
+
+A lesson blueprint is invalid if its prose still treats a course-wide Point number or denominator as teaching authority. Cross-lesson dependencies must use stable IDs such as `week-04-p11`; learner-facing numeric position must use the active lesson's own total.
 
 When a legacy point has no Point ID, migration assigns a title-independent frozen ID such as `week-04-p07` from its original position. Treat that value as an opaque constant after first assignment. Renaming, renumbering, or moving a point must preserve its existing Point ID; no tool may recompute an ID already present in the blueprint.
 
@@ -125,7 +130,7 @@ The blueprint becomes stale when:
 - Knowledge points are split, merged, reordered, or renamed.
 - A tutor coverage failure reveals a missing dependency or operation.
 - The course notation or teaching profile changes.
-- The source register, course map, progress denominator, or learning state disagrees with the blueprint.
+- The source register, manifest, course map, lesson-local progress denominator, or learning state disagrees with the active blueprint.
 
 When stale:
 

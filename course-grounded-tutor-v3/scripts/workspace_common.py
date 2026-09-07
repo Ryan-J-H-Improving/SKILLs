@@ -10,11 +10,14 @@ import tempfile
 from pathlib import Path
 
 
-WORKSPACE_SCHEMA_VERSION = 1
-SKILL_VERSION = "3.2.3"
+WORKSPACE_SCHEMA_VERSION = 2
+SKILL_VERSION = "3.3.1"
 BLUEPRINT_VERSION = "3.1"
+BLUEPRINT_MANIFEST_VERSION = 1
 WORKSPACE_ROLE_CANONICAL = "canonical"
 WORKSPACE_ROLE_REFERENCE_MIRROR = "reference_mirror"
+MIRROR_MODE_POINTER_ONLY = "pointer_only"
+MIRROR_MODE_SNAPSHOT = "snapshot"
 WORKSPACE_ROLES = {
     WORKSPACE_ROLE_CANONICAL,
     WORKSPACE_ROLE_REFERENCE_MIRROR,
@@ -31,12 +34,55 @@ def workspace_role(course_dir: Path) -> str:
     )
 
 
+def find_course_dir(path: Path) -> Path | None:
+    """Find the nearest course workspace that owns path."""
+    candidate = path if path.is_dir() else path.parent
+    for directory in (candidate, *candidate.parents):
+        if (directory / "course.yml").is_file():
+            return directory
+    return None
+
+
+def active_blueprint_path(course_dir: Path) -> Path:
+    """Resolve the active lesson blueprint declared by course.yml."""
+    metadata = yaml_scalar_paths(course_dir / "course.yml")
+    raw_path = metadata.get(
+        "teaching.blueprint.path", "indexes/teaching-blueprint.md"
+    ).strip()
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = course_dir / path
+    return path.resolve()
+
+
+def relative_course_path(course_dir: Path, path: Path) -> str:
+    """Return one portable, forward-slash path contained by course_dir."""
+    resolved_course = course_dir.resolve()
+    resolved_path = path.resolve()
+    try:
+        return resolved_path.relative_to(resolved_course).as_posix()
+    except ValueError as error:
+        raise ValueError(f"path is outside the course workspace: {path}") from error
+
+
+def lesson_id_from_point_id(point_id: str) -> str:
+    """Derive the stable lesson prefix from a point identifier."""
+    match = re.fullmatch(r"(.+?)-(?:point-)?p?(\d+)", point_id.strip(), re.IGNORECASE)
+    if match:
+        return match.group(1)
+    match = re.fullmatch(r"(.+?)-point-(\d+)", point_id.strip(), re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
 def reference_mirror_write_error(course_dir: Path) -> str:
     course_yml = course_dir / "course.yml"
     if not course_yml.is_file():
         return ""
     metadata = yaml_scalar_paths(course_yml)
-    if metadata.get("workspace_role", WORKSPACE_ROLE_CANONICAL) != WORKSPACE_ROLE_REFERENCE_MIRROR:
+    if (
+        metadata.get("workspace_role", WORKSPACE_ROLE_CANONICAL)
+        != WORKSPACE_ROLE_REFERENCE_MIRROR
+    ):
         return ""
     canonical = metadata.get("canonical_course_dir", "").strip()
     destination = canonical or "the canonical course directory recorded in course.yml"
@@ -46,11 +92,23 @@ def reference_mirror_write_error(course_dir: Path) -> str:
     )
 
 
+def course_write_error(path: Path) -> str:
+    """Return an error when path belongs to a read-only course mirror."""
+    course_dir = find_course_dir(path)
+    return reference_mirror_write_error(course_dir) if course_dir else ""
+
+
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def atomic_write_text(path: Path, text: str) -> None:
+def atomic_write_text(
+    path: Path, text: str, *, allow_reference_mirror: bool = False
+) -> None:
+    if not allow_reference_mirror:
+        mirror_error = course_write_error(path)
+        if mirror_error:
+            raise PermissionError(mirror_error)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = text.rstrip() + "\n"
     descriptor, temporary_name = tempfile.mkstemp(

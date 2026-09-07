@@ -21,10 +21,12 @@ Use the locked reply language:
 
 ```text
 Current progress
-- Teaching position: <current point>/<total points>
+- Current lesson: <lesson title>
+- Teaching position: <current point>/<total points in this lesson>
 - Now: <point title>
 - Point status: <teaching | exercise pending | repair needed | practiced>
-- Evidence: <practiced points>/<total points> practiced; <mastered points>/<total points> mastered
+- Evidence: <practiced points>/<lesson total> practiced; <mastered points>/<lesson total> mastered
+- Course coverage: <supplied lessons outlined>/<supplied lessons> <only when useful>
 - Previously covered: <short summary without claiming mastery>
 - Fragile: <only active learner weak points>
 - Next: <next concrete action>
@@ -36,11 +38,11 @@ Do not display a separate guided or independent checkpoint because V3.1 uses one
 
 Show the `Notes` line only when the read-only workspace audit reports a meaningful lag or unresolved delivery warning. It is a maintenance signal, not a reason to interrupt the current explanation or claim that learning evidence is invalid.
 
-The position counter answers "where should teaching resume?" It does not answer "how much has the learner mastered?" Never label it as completion. In particular, a migrated course may resume at `38/38` while the current point is `not_started` and no historical claim has been promoted into V3.1 evidence. State that distinction explicitly at session start and derive practiced/mastered counts only from valid current evidence.
+The position counter answers "where should this lesson resume?" It does not answer course completion or mastery. Never combine points from several weeks into one denominator such as `40/54`. Show `Week 5 - 2/16` and keep course coverage separate. Derive practiced/mastered counts only from valid current evidence.
 
 ## Numeric Consistency
 
-The denominator must come from the validated teaching blueprint. Before display, compare it with the course map and learning state.
+The denominator must come from the active registered lesson blueprint. Before display, compare it with the manifest, course map, and learning state.
 
 If the lesson has not been planned, show:
 
@@ -54,7 +56,8 @@ Then complete the blueprint before detailed teaching. If segmentation changes, u
 
 Read from:
 
-- `indexes/teaching-blueprint.md`
+- `course.yml` active blueprint path
+- `indexes/blueprints/manifest.json`
 - `memory/learning-state.md`
 - `memory/weak-points.md`
 - `memory/practice-history.md`

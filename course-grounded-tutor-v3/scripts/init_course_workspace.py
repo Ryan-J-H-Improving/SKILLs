@@ -9,14 +9,23 @@ import shutil
 from pathlib import Path
 
 from build_course_index import build_index
-from workspace_common import WORKSPACE_ROLE_CANONICAL, yaml_scalar_paths
+from workspace_common import (
+    WORKSPACE_ROLE_CANONICAL,
+    reference_mirror_write_error,
+    yaml_scalar_paths,
+)
 
 
 COURSE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
 
 ROOT_TEMPLATE_FILES = {
-    "teaching-blueprint.md.template": ("indexes", "teaching-blueprint.md"),
+    "teaching-blueprint.md.template": ("indexes", "blueprints", "lesson-01.md"),
+    "lesson-blueprint-manifest.json.template": (
+        "indexes",
+        "blueprints",
+        "manifest.json",
+    ),
     "course-map.md.template": ("notes", "course-map.md"),
     "study-notes.md.template": ("notes", "study-notes.md"),
     "exam-review-notes.md.template": ("notes", "exam-review-notes.md"),
@@ -94,6 +103,10 @@ def main() -> int:
     workspace = Path(args.workspace)
     course_dir = workspace / "courses" / args.course_id
     target_exists = (course_dir / "course.yml").is_file()
+    if target_exists:
+        mirror_error = reference_mirror_write_error(course_dir)
+        if mirror_error:
+            parser.error("workspace initialization is blocked: " + mirror_error)
     target_workspace = workspace.resolve()
     external_workspaces: list[Path] = []
     for known in args.known_workspace:
@@ -132,6 +145,7 @@ def main() -> int:
         "extracted/pages",
         "extracted/figures",
         "indexes",
+        "indexes/blueprints",
         "memory",
         "memory/exercise-contracts",
         "notes",

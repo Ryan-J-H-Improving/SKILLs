@@ -16,6 +16,7 @@ from exercise_contract import (
 from workspace_common import (
     atomic_write_text,
     file_sha256,
+    find_course_dir,
     reference_mirror_write_error,
 )
 
@@ -66,10 +67,18 @@ def main() -> int:
     args = parser.parse_args()
     if args.dry_run and not args.promote:
         parser.error("--dry-run is only valid with --promote")
+    course_dir = find_course_dir(args.blueprint)
     if args.promote:
-        mirror_error = reference_mirror_write_error(args.blueprint.parent.parent)
+        mirror_error = reference_mirror_write_error(course_dir) if course_dir else ""
         if mirror_error:
             parser.error("exercise contract promotion is blocked: " + mirror_error)
+        if course_dir is not None:
+            try:
+                args.contract.resolve().relative_to(course_dir.resolve())
+            except ValueError:
+                parser.error(
+                    "exercise contract promotion requires the contract to be inside the canonical course workspace"
+                )
 
     data, errors = validate_contract_file(
         args.contract, require_ready=not args.promote

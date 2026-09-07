@@ -23,10 +23,12 @@ Read `.ai-course-tutor/index.md` first. Then inspect likely `course.yml` files.
 
 Resolve workspace role before comparing learning state:
 
-- `canonical`: this is the only location allowed to receive teaching progress, notes, or exercise contracts for that course instance.
-- `reference_mirror`: use it only for discovery or recovery. Follow its absolute `canonical_course_dir`, audit that target, and ignore the mirror's local progress even if its copied blueprint says `ready`.
+- `canonical`: this is the only location allowed to receive any course-owned output for that course instance.
+- `reference_mirror`: use it only for discovery or recovery. Run `scripts/resolve_course_workspace.py`, follow its absolute `canonical_course_dir`, audit that target, and ignore all local mirror content even if it says `ready`.
 
-`mirror_canonical_blueprint_sha256` and `mirror_canonical_learning_state_sha256` track only those two named recovery snapshots. A drift warning does not mean every mirror file should be copied from the canonical. To refresh a tracked hash, first copy the corresponding canonical blueprint or learning-state file into an isolated mirror copy, verify exact byte equality, audit the mirror, and then whitelist-activate that file and its metadata. Never silence drift by editing only the recorded hash.
+Prefer `mirror_mode: pointer_only`; it may contain only `course.yml` and optional `MIRROR.md`. `mirror_canonical_blueprint_sha256` and `mirror_canonical_learning_state_sha256` exist only for legacy snapshot mirrors. A local hash change or any course-owned file modified after the recorded sync is a split-brain error, not evidence that the mirror is newer. Recover it into the canonical through an isolated, reviewed merge, then convert the mirror to pointer-only. Never silence drift by editing only recorded hashes.
+
+Workspace resolution is not only a start-of-chat step. Repeat it before creating or changing notes, figures, contracts, assignments, plans, extracted assets, source registers, or state. A long-running chat may retain an old working directory after migration; the current `course.yml` role always wins.
 
 If two directories both claim `canonical` for the same course instance, do not choose by recency or proximity. Treat the identity as ambiguous, present the conflicting paths, and require an explicit canonical decision before formal teaching.
 
